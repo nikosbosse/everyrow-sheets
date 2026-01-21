@@ -16,58 +16,40 @@ Google Sheets → Apps Script → Cohort Engine API → Results
 
 The add-on calls the Cohort Engine API at `engine.futuresearch.ai` to process your data. Operations run asynchronously and may take several minutes depending on data size.
 
-## Developer Setup
-
-### Prerequisites
-
-- Node.js (for clasp CLI)
-- Google account with Apps Script access
-- GCP authentication (for creating Apps Script projects)
-
-### 1. Install clasp
+## Quick Start
 
 ```bash
-npm install -g @google/clasp
-clasp login  # Opens browser for Google auth
+# Install dependencies
+pnpm install
+
+# Run interactive setup (authenticates with Google, creates project, pushes code)
+pnpm setup
 ```
 
-### 2. Create Apps Script Project
+That's it! The setup script will:
+1. Log you into Google (opens browser)
+2. Create an Apps Script project
+3. Push the code
+
+Then open any Google Sheet and you'll see the **everyrow** menu.
+
+## Prerequisites
+
+Before running setup:
+
+1. **Enable the Apps Script API** at https://script.google.com/home/usersettings
+2. Have a Google account
+
+## Development Commands
 
 ```bash
-cd everyrow-sheets
-clasp create --type sheets --title "everyrow Sheets Add-on" --rootDir src
-```
-
-This creates `.clasp.json` with your script ID. Keep this file local (it's gitignored).
-
-### 3. Push Code
-
-```bash
-clasp push
-```
-
-### 4. Test in Google Sheets
-
-1. Open any Google Sheet
-2. Go to **Extensions → Apps Script**
-3. Select your project from the dropdown
-4. Click **Run** on the `onOpen` function (grant permissions when prompted)
-5. Refresh the sheet - you should see the **everyrow** menu
-
-### Development Workflow
-
-```bash
-# Push changes to Apps Script
-clasp push
-
-# Watch for changes and auto-push
-clasp push --watch
-
-# Open Apps Script editor in browser
-clasp open
-
-# Pull remote changes (if edited in browser)
-clasp pull
+pnpm setup        # Interactive setup (first time)
+pnpm push         # Push code changes to Apps Script
+pnpm push:watch   # Watch and auto-push on file changes
+pnpm open         # Open Apps Script editor in browser
+pnpm logs         # View execution logs
+pnpm logs:watch   # Stream logs in real-time
+pnpm pull         # Pull remote changes (if edited in browser)
 ```
 
 ## User Setup
@@ -123,9 +105,11 @@ everyrow-sheets/
 │   ├── DataHandling.gs   # Sheet ↔ JSON conversion
 │   ├── Settings.gs       # API key storage
 │   ├── Sidebar.html      # Main UI
-│   └── Styles.html       # CSS
-├── appsscript.json       # Manifest (scopes)
-├── .clasp.json.example   # Template for clasp config
+│   ├── Styles.html       # CSS
+│   └── appsscript.json   # Manifest (scopes)
+├── scripts/
+│   └── setup.js          # Interactive setup script
+├── package.json
 └── README.md
 ```
 
@@ -154,6 +138,10 @@ Select your data including the header row. The first row is used as column names
 ### Operation timed out
 
 Use **Check Previous Task** from the menu. The operation continues running on the server.
+
+### Setup fails with "Apps Script API not enabled"
+
+Visit https://script.google.com/home/usersettings and enable the API.
 
 ## API Reference
 

@@ -1,8 +1,9 @@
 # clasp config (contains script ID - user-specific)
 .clasp.json
 
-# Node.js (if using npm for clasp)
+# Node.js
 node_modules/
+pnpm-lock.yaml
 
 # macOS
 .DS_Store
