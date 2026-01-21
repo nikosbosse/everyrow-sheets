@@ -5,8 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const CLASP_JSON_PATH = path.join(__dirname, '..', '.clasp.json');
-const SRC_DIR = path.join(__dirname, '..', 'src');
+const PROJECT_ROOT = path.join(__dirname, '..');
+const CLASP_JSON_PATH = path.join(PROJECT_ROOT, '.clasp.json');
+const SRC_DIR = path.join(PROJECT_ROOT, 'src');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -21,7 +22,12 @@ function question(prompt) {
 
 function run(cmd, options = {}) {
   try {
-    return execSync(cmd, { encoding: 'utf8', stdio: options.silent ? 'pipe' : 'inherit', ...options });
+    return execSync(cmd, {
+      encoding: 'utf8',
+      stdio: options.silent ? 'pipe' : 'inherit',
+      cwd: PROJECT_ROOT,
+      ...options
+    });
   } catch (e) {
     if (options.ignoreError) return null;
     throw e;
@@ -29,7 +35,7 @@ function run(cmd, options = {}) {
 }
 
 function checkClaspAuth() {
-  const result = spawnSync('clasp', ['login', '--status'], { encoding: 'utf8' });
+  const result = spawnSync('clasp', ['login', '--status'], { encoding: 'utf8', cwd: PROJECT_ROOT });
   return result.stdout && result.stdout.includes('You are logged in');
 }
 
@@ -44,7 +50,7 @@ async function main() {
     const answer = await question('Push code to this project? (Y/n): ');
     if (answer.toLowerCase() !== 'n') {
       console.log('\nPushing code...');
-      run('clasp push');
+      run('clasp push --force');
       console.log('\n✓ Code pushed! Run `pnpm open` to open in browser.\n');
     }
     rl.close();
@@ -72,6 +78,13 @@ async function main() {
 
   try {
     run(`clasp create --type sheets --title "${name}" --rootDir src`);
+
+    // clasp sometimes puts .clasp.json in src/ instead of project root - fix it
+    const srcClaspJson = path.join(SRC_DIR, '.clasp.json');
+    if (fs.existsSync(srcClaspJson) && !fs.existsSync(CLASP_JSON_PATH)) {
+      fs.renameSync(srcClaspJson, CLASP_JSON_PATH);
+    }
+
     console.log('\n✓ Project created!\n');
   } catch (e) {
     console.error('\n✗ Failed to create project. You may need to enable the Apps Script API:');
@@ -82,7 +95,7 @@ async function main() {
 
   // Step 3: Push code
   console.log('Step 3: Pushing code to Apps Script...\n');
-  run('clasp push');
+  run('clasp push --force');
   console.log('\n✓ Code pushed!\n');
 
   // Done
