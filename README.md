@@ -23,7 +23,7 @@ The add-on calls the Cohort Engine API at `engine.futuresearch.ai` to process yo
 pnpm install
 
 # Run interactive setup (authenticates with Google, creates project, pushes code)
-pnpm setup
+pnpm clasp:init
 ```
 
 That's it! The setup script will:
@@ -43,7 +43,7 @@ Before running setup:
 ## Development Commands
 
 ```bash
-pnpm setup        # Interactive setup (first time)
+pnpm clasp:init   # Interactive setup (first time)
 pnpm push         # Push code changes to Apps Script
 pnpm push:watch   # Watch and auto-push on file changes
 pnpm open         # Open Apps Script editor in browser

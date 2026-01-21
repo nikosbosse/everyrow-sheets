@@ -4,7 +4,7 @@
   "description": "Google Sheets add-on for everyrow operations (rank, dedupe, screen)",
   "private": true,
   "scripts": {
-    "setup": "node scripts/setup.js",
+    "clasp:init": "node scripts/setup.js",
     "push": "clasp push",
     "push:watch": "clasp push --watch",
     "pull": "clasp pull",
