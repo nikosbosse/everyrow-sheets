@@ -12,15 +12,15 @@
  * @throws {Error} If request fails or API returns error.
  */
 function makeApiRequest(method, path, body) {
-  const apiKey = getApiKey();
+  var apiKey = getApiKey();
   if (!apiKey) {
     throw new Error('API key not configured. Please set your API key in Settings.');
   }
 
-  const baseUrl = getApiBaseUrl();
-  const url = baseUrl + path;
+  var baseUrl = getApiBaseUrl();
+  var url = baseUrl + path;
 
-  const options = {
+  var options = {
     method: method,
     headers: {
       'Authorization': 'Bearer ' + apiKey,
@@ -33,9 +33,9 @@ function makeApiRequest(method, path, body) {
     options.payload = JSON.stringify(body);
   }
 
-  const response = UrlFetchApp.fetch(url, options);
-  const statusCode = response.getResponseCode();
-  const responseText = response.getContentText();
+  var response = UrlFetchApp.fetch(url, options);
+  var statusCode = response.getResponseCode();
+  var responseText = response.getContentText();
 
   if (statusCode === 401) {
     throw new Error('Invalid API key. Please check your API key in Settings.');
@@ -46,16 +46,18 @@ function makeApiRequest(method, path, body) {
   }
 
   if (statusCode >= 400) {
-    let errorMessage = 'API error: ' + statusCode;
+    var errorMessage = 'API error: ' + statusCode;
     try {
-      const errorBody = JSON.parse(responseText);
+      var errorBody = JSON.parse(responseText);
       if (errorBody.detail) {
-        errorMessage = errorBody.detail;
+        errorMessage = typeof errorBody.detail === 'string'
+          ? errorBody.detail
+          : JSON.stringify(errorBody.detail);
       } else if (errorBody.message) {
         errorMessage = errorBody.message;
       }
     } catch (e) {
-      // Use default error message
+      errorMessage = 'API error ' + statusCode + ': ' + responseText.substring(0, 200);
     }
     throw new Error(errorMessage);
   }
@@ -69,14 +71,15 @@ function makeApiRequest(method, path, body) {
  * @return {Object} Session object with id.
  */
 function createSession(name) {
-  return makeApiRequest('POST', '/sessions/create', { name: name });
+  var result = makeApiRequest('POST', '/sessions/create', { name: name });
+  return { id: result.session_id };
 }
 
 /**
  * Submit a task to the Engine.
- * @param {Object} payload - Task payload (DeepRankRequest, DeepScreenRequest, etc.).
+ * @param {Object} payload - Task payload.
  * @param {string} sessionId - Session ID to associate task with.
- * @return {Object} Task object with id.
+ * @return {Object} Task object with task_id.
  */
 function submitTask(payload, sessionId) {
   return makeApiRequest('POST', '/tasks', {
@@ -100,31 +103,8 @@ function getTaskStatus(taskId) {
  * @return {Object[]} Array of artifact objects.
  */
 function getArtifacts(artifactIds) {
-  const params = artifactIds.map(id => 'ids=' + encodeURIComponent(id)).join('&');
+  var params = artifactIds.map(function(id) {
+    return 'artifact_ids=' + encodeURIComponent(id);
+  }).join('&');
   return makeApiRequest('GET', '/artifacts?' + params);
-}
-
-/**
- * Get a single artifact by ID.
- * @param {string} artifactId - Artifact ID.
- * @return {Object} Artifact object with data.
- */
-function getArtifact(artifactId) {
-  return makeApiRequest('GET', '/artifacts/' + artifactId);
-}
-
-/**
- * Create an artifact (for input data).
- * @param {Object} data - Artifact data.
- * @param {string} sessionId - Session ID.
- * @param {string} [type='group'] - Artifact type.
- * @return {Object} Created artifact with id.
- */
-function createArtifact(data, sessionId, type) {
-  type = type || 'group';
-  return makeApiRequest('POST', '/artifacts', {
-    data: data,
-    session_id: sessionId,
-    artifact_type: type
-  });
 }

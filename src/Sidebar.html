@@ -7,11 +7,14 @@
 <body>
   <div id="app">
     <!-- API Key Setup (shown when not configured) -->
-    <div id="setup-section" class="section hidden">
-      <h2>Setup Required</h2>
+    <div id="setup-section" class="hidden">
+      <h2>Welcome to everyrow</h2>
+      <p style="color: #5f6368; margin-bottom: 16px;">
+        Run AI-powered operations on your spreadsheet data: rank, screen, and deduplicate rows.
+      </p>
       <div class="info-box">
-        Enter your API key to get started. Get one at
-        <a href="https://cohort.futuresearch.ai/settings/api-keys" target="_blank">cohort.futuresearch.ai</a>
+        <strong>Get your API key:</strong><br>
+        <a href="https://cohort.futuresearch.ai/settings/api-keys" target="_blank">cohort.futuresearch.ai/settings/api-keys</a>
       </div>
       <label for="api-key-input">API Key</label>
       <input type="password" id="api-key-input" placeholder="sk-cho-...">
@@ -20,85 +23,120 @@
 
     <!-- Main Interface (shown when configured) -->
     <div id="main-section" class="hidden">
-      <!-- Selection Info -->
-      <div id="selection-info" class="selection-info">
-        <span class="stat">Rows: <span id="row-count" class="stat-value">0</span></span>
-        <span class="stat">Columns: <span id="col-count" class="stat-value">0</span></span>
-        <button class="secondary" onclick="refreshSelection()" style="float: right; padding: 4px 8px; font-size: 11px;">Refresh</button>
-      </div>
 
-      <!-- Operation Tabs -->
-      <div class="tabs">
-        <div class="tab active" data-tab="rank">Rank</div>
-        <div class="tab" data-tab="screen">Screen</div>
-        <div class="tab" data-tab="dedupe">Dedupe</div>
-      </div>
-
-      <!-- Rank Tab -->
-      <div id="rank-tab" class="tab-content active">
-        <label for="rank-task">Ranking Task</label>
-        <textarea id="rank-task" placeholder="e.g., Rank companies by growth potential based on their description"></textarea>
-
-        <label for="rank-field">Score Field Name</label>
-        <input type="text" id="rank-field" value="score" placeholder="score">
-
-        <div class="checkbox-group">
-          <input type="checkbox" id="rank-ascending">
-          <label for="rank-ascending">Sort ascending (lowest first)</label>
+      <!-- Step 1: Data Selection -->
+      <div class="step-section">
+        <div class="step-header">
+          <span class="step-number">1</span>
+          <span class="step-title">Select your data</span>
         </div>
-
-        <button class="primary" onclick="runRankOperation()">Run Rank</button>
+        <div class="step-content">
+          <p class="step-description">
+            Select cells in your sheet including the header row. The first row becomes column names.
+          </p>
+          <div id="selection-info" class="selection-box">
+            <div id="no-selection" class="hidden">
+              <span style="color: #d93025;">No selection detected</span>
+            </div>
+            <div id="has-selection">
+              <span><strong id="row-count">0</strong> rows selected</span>
+              <span style="margin-left: 12px;"><strong id="col-count">0</strong> columns</span>
+            </div>
+          </div>
+          <button class="secondary small" onclick="refreshSelection()">Refresh Selection</button>
+        </div>
       </div>
 
-      <!-- Screen Tab -->
-      <div id="screen-tab" class="tab-content">
-        <label for="screen-task">Screening Criteria</label>
-        <textarea id="screen-task" placeholder="e.g., Companies with more than 100 employees that are in the technology sector"></textarea>
-
-        <button class="primary" onclick="runScreenOperation()">Run Screen</button>
+      <!-- Step 2: Choose Operation -->
+      <div class="step-section">
+        <div class="step-header">
+          <span class="step-number">2</span>
+          <span class="step-title">Choose operation</span>
+        </div>
+        <div class="step-content">
+          <div class="operation-cards">
+            <div class="operation-card" data-operation="rank" onclick="selectOperation('rank')">
+              <div class="operation-name">Rank</div>
+              <div class="operation-desc">Score and sort rows by criteria</div>
+            </div>
+            <div class="operation-card" data-operation="screen" onclick="selectOperation('screen')">
+              <div class="operation-name">Screen</div>
+              <div class="operation-desc">Filter rows that match conditions</div>
+            </div>
+            <div class="operation-card" data-operation="dedupe" onclick="selectOperation('dedupe')">
+              <div class="operation-name">Dedupe</div>
+              <div class="operation-desc">Remove duplicate rows</div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Dedupe Tab -->
-      <div id="dedupe-tab" class="tab-content">
-        <label for="dedupe-relation">What makes records duplicates?</label>
-        <textarea id="dedupe-relation" placeholder="e.g., Same company, possibly with different name variations or typos"></textarea>
+      <!-- Step 3: Configure & Run (dynamic based on operation) -->
+      <div id="operation-config" class="step-section hidden">
+        <div class="step-header">
+          <span class="step-number">3</span>
+          <span class="step-title" id="config-title">Configure</span>
+        </div>
+        <div class="step-content">
+          <!-- Rank Config -->
+          <div id="rank-config" class="operation-form hidden">
+            <label for="rank-task">What should rows be ranked by?</label>
+            <textarea id="rank-task" placeholder="e.g., Rank companies by growth potential based on their description and metrics"></textarea>
+            <div class="form-row">
+              <div class="form-field">
+                <label for="rank-field">Score column name</label>
+                <input type="text" id="rank-field" value="score" placeholder="score">
+              </div>
+              <div class="form-field">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="rank-ascending">
+                  Sort ascending
+                </label>
+              </div>
+            </div>
+            <button class="primary" onclick="runRankOperation()">Run Rank</button>
+          </div>
 
-        <button class="primary" onclick="runDedupeOperation()">Run Dedupe</button>
+          <!-- Screen Config -->
+          <div id="screen-config" class="operation-form hidden">
+            <label for="screen-task">What criteria should rows match?</label>
+            <textarea id="screen-task" placeholder="e.g., Companies with more than 100 employees in the technology sector"></textarea>
+            <button class="primary" onclick="runScreenOperation()">Run Screen</button>
+          </div>
+
+          <!-- Dedupe Config -->
+          <div id="dedupe-config" class="operation-form hidden">
+            <label for="dedupe-relation">What makes two rows duplicates?</label>
+            <textarea id="dedupe-relation" placeholder="e.g., Same company, possibly with different name spellings or abbreviations"></textarea>
+            <button class="primary" onclick="runDedupeOperation()">Run Dedupe</button>
+          </div>
+        </div>
       </div>
 
       <!-- Status Section -->
-      <div id="status-section" class="section hidden">
-        <div id="status-loading" class="loading hidden">
+      <div id="status-section" class="hidden">
+        <div id="status-loading" class="loading-box hidden">
           <div class="spinner"></div>
-          <span id="status-message">Processing...</span>
+          <div class="loading-text">
+            <span id="status-message">Processing...</span>
+            <span class="loading-hint">This may take a few minutes</span>
+          </div>
         </div>
         <div id="status-success" class="success-box hidden"></div>
         <div id="status-error" class="error-box hidden"></div>
       </div>
 
-      <!-- Previous Task Section -->
-      <div id="previous-task-section" class="section hidden">
-        <h3>Previous Task</h3>
-        <div class="info-box">
-          A previous task is still running. Task ID: <span id="previous-task-id" class="api-key-display"></span>
-        </div>
-        <div class="button-group">
-          <button class="secondary" onclick="checkPreviousTask()">Check Status</button>
-          <button class="secondary" onclick="clearPreviousTask()">Dismiss</button>
-        </div>
-      </div>
-
-      <!-- Settings Link -->
-      <div style="margin-top: 24px; border-top: 1px solid #e0e0e0; padding-top: 16px;">
-        <span class="help-link">
-          API Key: <span id="api-key-display" class="api-key-display"></span>
-          <a href="#" onclick="showApiKeyDialog(); return false;" style="margin-left: 8px;">Change</a>
+      <!-- Footer -->
+      <div class="sidebar-footer">
+        <span class="api-key-info">
+          API Key: <span id="api-key-display" class="monospace"></span>
+          <a href="#" onclick="showApiKeyDialog(); return false;">Change</a>
         </span>
       </div>
     </div>
 
     <!-- API Key Change Dialog -->
-    <div id="api-key-dialog" class="section hidden">
+    <div id="api-key-dialog" class="hidden">
       <h3>Change API Key</h3>
       <label for="new-api-key">New API Key</label>
       <input type="password" id="new-api-key" placeholder="sk-cho-...">
@@ -110,36 +148,22 @@
   </div>
 
   <script>
-    // State
-    let state = {
+    var state = {
       isConfigured: false,
       apiKeyMasked: null,
       lastTaskId: null,
-      selectionInfo: { hasSelection: false, rowCount: 0, columnCount: 0, headers: [] }
+      selectionInfo: { hasSelection: false, rowCount: 0, columnCount: 0, headers: [] },
+      selectedOperation: null
     };
 
-    // Initialize on load
     document.addEventListener('DOMContentLoaded', function() {
-      setupTabs();
       loadInitialState();
     });
-
-    function setupTabs() {
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-          const tabName = this.dataset.tab;
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-          this.classList.add('active');
-          document.getElementById(tabName + '-tab').classList.add('active');
-        });
-      });
-    }
 
     function loadInitialState() {
       google.script.run
         .withSuccessHandler(function(data) {
-          state = data;
+          state = Object.assign(state, data);
           updateUI();
         })
         .withFailureHandler(showError)
@@ -147,39 +171,59 @@
     }
 
     function updateUI() {
-      // Show/hide sections based on configuration state
       document.getElementById('setup-section').classList.toggle('hidden', state.isConfigured);
       document.getElementById('main-section').classList.toggle('hidden', !state.isConfigured);
 
       if (state.isConfigured) {
         document.getElementById('api-key-display').textContent = state.apiKeyMasked || '';
-
-        // Update selection info
-        document.getElementById('row-count').textContent = state.selectionInfo.rowCount;
-        document.getElementById('col-count').textContent = state.selectionInfo.columnCount;
-
-        // Show previous task section if there's a pending task
-        const hasPreviousTask = state.lastTaskId !== null;
-        document.getElementById('previous-task-section').classList.toggle('hidden', !hasPreviousTask);
-        if (hasPreviousTask) {
-          document.getElementById('previous-task-id').textContent = state.lastTaskId.substring(0, 8) + '...';
-        }
+        updateSelectionDisplay();
       }
+    }
+
+    function updateSelectionDisplay() {
+      var hasData = state.selectionInfo.rowCount > 0;
+      document.getElementById('no-selection').classList.toggle('hidden', hasData);
+      document.getElementById('has-selection').classList.toggle('hidden', !hasData);
+      document.getElementById('row-count').textContent = state.selectionInfo.rowCount;
+      document.getElementById('col-count').textContent = state.selectionInfo.columnCount;
     }
 
     function refreshSelection() {
       google.script.run
         .withSuccessHandler(function(info) {
           state.selectionInfo = info;
-          document.getElementById('row-count').textContent = info.rowCount;
-          document.getElementById('col-count').textContent = info.columnCount;
+          updateSelectionDisplay();
         })
         .withFailureHandler(showError)
         .getSelectionInfo();
     }
 
+    function selectOperation(op) {
+      state.selectedOperation = op;
+
+      // Update card selection
+      document.querySelectorAll('.operation-card').forEach(function(card) {
+        card.classList.toggle('selected', card.dataset.operation === op);
+      });
+
+      // Show config section
+      document.getElementById('operation-config').classList.remove('hidden');
+
+      // Hide all operation forms, show selected one
+      document.querySelectorAll('.operation-form').forEach(function(form) {
+        form.classList.add('hidden');
+      });
+      document.getElementById(op + '-config').classList.remove('hidden');
+
+      // Update title
+      var titles = { rank: 'Configure Rank', screen: 'Configure Screen', dedupe: 'Configure Dedupe' };
+      document.getElementById('config-title').textContent = titles[op];
+
+      clearStatus();
+    }
+
     function saveApiKey() {
-      const apiKey = document.getElementById('api-key-input').value.trim();
+      var apiKey = document.getElementById('api-key-input').value.trim();
       if (!apiKey) {
         showError({ message: 'Please enter an API key' });
         return;
@@ -208,7 +252,7 @@
     }
 
     function updateApiKey() {
-      const apiKey = document.getElementById('new-api-key').value.trim();
+      var apiKey = document.getElementById('new-api-key').value.trim();
       if (!apiKey) {
         showError({ message: 'Please enter an API key' });
         return;
@@ -243,7 +287,7 @@
       hideLoading();
       document.getElementById('status-section').classList.remove('hidden');
       document.getElementById('status-success').classList.remove('hidden');
-      document.getElementById('status-success').textContent = message;
+      document.getElementById('status-success').innerHTML = message;
     }
 
     function showError(error) {
@@ -257,20 +301,26 @@
       document.getElementById('status-section').classList.add('hidden');
       document.getElementById('status-success').classList.add('hidden');
       document.getElementById('status-error').classList.add('hidden');
+      document.getElementById('status-loading').classList.add('hidden');
     }
 
     function runRankOperation() {
-      const task = document.getElementById('rank-task').value.trim();
+      var task = document.getElementById('rank-task').value.trim();
       if (!task) {
-        showError({ message: 'Please enter a ranking task' });
+        showError({ message: 'Please describe what to rank by' });
         return;
       }
 
-      const fieldName = document.getElementById('rank-field').value.trim() || 'score';
-      const ascending = document.getElementById('rank-ascending').checked;
+      if (state.selectionInfo.rowCount === 0) {
+        showError({ message: 'Please select data in your sheet first' });
+        return;
+      }
+
+      var fieldName = document.getElementById('rank-field').value.trim() || 'score';
+      var ascending = document.getElementById('rank-ascending').checked;
 
       clearStatus();
-      showLoading('Running rank operation...');
+      showLoading('Creating input data...');
 
       google.script.run
         .withSuccessHandler(handleOperationResult)
@@ -279,14 +329,19 @@
     }
 
     function runScreenOperation() {
-      const task = document.getElementById('screen-task').value.trim();
+      var task = document.getElementById('screen-task').value.trim();
       if (!task) {
-        showError({ message: 'Please enter screening criteria' });
+        showError({ message: 'Please describe the screening criteria' });
+        return;
+      }
+
+      if (state.selectionInfo.rowCount === 0) {
+        showError({ message: 'Please select data in your sheet first' });
         return;
       }
 
       clearStatus();
-      showLoading('Running screen operation...');
+      showLoading('Creating input data...');
 
       google.script.run
         .withSuccessHandler(handleOperationResult)
@@ -295,14 +350,19 @@
     }
 
     function runDedupeOperation() {
-      const relation = document.getElementById('dedupe-relation').value.trim();
+      var relation = document.getElementById('dedupe-relation').value.trim();
       if (!relation) {
-        showError({ message: 'Please describe what makes records duplicates' });
+        showError({ message: 'Please describe what makes rows duplicates' });
+        return;
+      }
+
+      if (state.selectionInfo.rowCount === 0) {
+        showError({ message: 'Please select data in your sheet first' });
         return;
       }
 
       clearStatus();
-      showLoading('Running dedupe operation...');
+      showLoading('Creating input data...');
 
       google.script.run
         .withSuccessHandler(handleOperationResult)
@@ -312,57 +372,14 @@
 
     function handleOperationResult(result) {
       if (result.status === 'completed') {
-        showSuccess('Completed! ' + result.rowCount + ' rows written to new sheet.');
-        loadInitialState(); // Refresh state
+        showSuccess('<strong>Done!</strong> ' + result.rowCount + ' rows written to a new sheet tab.');
+        loadInitialState();
       } else if (result.status === 'timeout') {
         showError({ message: result.message });
-        loadInitialState(); // Refresh to show previous task section
+        loadInitialState();
       } else {
         showError({ message: 'Unexpected result: ' + JSON.stringify(result) });
       }
-    }
-
-    function checkPreviousTask() {
-      clearStatus();
-      showLoading('Checking task status...');
-
-      google.script.run
-        .withSuccessHandler(function(result) {
-          if (result.status === 'completed') {
-            // Ask if user wants to retrieve results
-            if (confirm('Task completed! Write results to a new sheet?')) {
-              retrieveResults(result.taskId);
-            } else {
-              hideLoading();
-              loadInitialState();
-            }
-          } else if (result.status === 'running') {
-            showError({ message: result.message });
-          }
-        })
-        .withFailureHandler(showError)
-        .checkPreviousTask();
-    }
-
-    function retrieveResults(taskId) {
-      showLoading('Retrieving results...');
-
-      google.script.run
-        .withSuccessHandler(function(result) {
-          showSuccess('Results written! ' + result.rowCount + ' rows.');
-          loadInitialState();
-        })
-        .withFailureHandler(showError)
-        .retrieveTaskResults(taskId, 'Results');
-    }
-
-    function clearPreviousTask() {
-      google.script.run
-        .withSuccessHandler(function() {
-          loadInitialState();
-        })
-        .withFailureHandler(showError)
-        .clearLastTaskId();
     }
   </script>
 </body>

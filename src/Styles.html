@@ -13,9 +13,9 @@
   }
 
   h2 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     color: #202124;
   }
 
@@ -24,16 +24,6 @@
     font-weight: 500;
     margin: 16px 0 8px 0;
     color: #5f6368;
-  }
-
-  .section {
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #e0e0e0;
-  }
-
-  .section:last-child {
-    border-bottom: none;
   }
 
   label {
@@ -49,7 +39,7 @@
   textarea,
   select {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border: 1px solid #dadce0;
     border-radius: 4px;
     font-size: 13px;
@@ -66,12 +56,12 @@
   }
 
   textarea {
-    min-height: 80px;
+    min-height: 70px;
     resize: vertical;
   }
 
   button {
-    padding: 8px 16px;
+    padding: 10px 20px;
     border: none;
     border-radius: 4px;
     font-size: 13px;
@@ -83,6 +73,7 @@
   button.primary {
     background-color: #1a73e8;
     color: white;
+    width: 100%;
   }
 
   button.primary:hover {
@@ -104,6 +95,11 @@
     background-color: #f8f9fa;
   }
 
+  button.small {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
   .button-group {
     display: flex;
     gap: 8px;
@@ -112,72 +108,57 @@
 
   .info-box {
     background: #e8f0fe;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 12px;
     margin-bottom: 16px;
-    font-size: 12px;
+    font-size: 13px;
     color: #174ea6;
-  }
-
-  .warning-box {
-    background: #fef7e0;
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 16px;
-    font-size: 12px;
-    color: #995700;
   }
 
   .error-box {
     background: #fce8e6;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 12px;
-    margin-bottom: 16px;
-    font-size: 12px;
+    font-size: 13px;
     color: #c5221f;
   }
 
   .success-box {
     background: #e6f4ea;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 12px;
-    margin-bottom: 16px;
-    font-size: 12px;
+    font-size: 13px;
     color: #137333;
   }
 
-  .selection-info {
-    background: #f8f9fa;
-    border-radius: 4px;
-    padding: 12px;
-    margin-bottom: 16px;
-    font-size: 12px;
-  }
-
-  .selection-info .stat {
-    display: inline-block;
-    margin-right: 16px;
-  }
-
-  .selection-info .stat-value {
-    font-weight: 500;
-    color: #202124;
-  }
-
-  .loading {
+  .loading-box {
     display: flex;
-    align-items: center;
-    gap: 8px;
+    align-items: flex-start;
+    gap: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .loading-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .loading-hint {
+    font-size: 12px;
     color: #5f6368;
   }
 
   .spinner {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border: 2px solid #e0e0e0;
     border-top-color: #1a73e8;
     border-radius: 50%;
     animation: spin 1s linear infinite;
+    flex-shrink: 0;
   }
 
   @keyframes spin {
@@ -188,62 +169,143 @@
     display: none !important;
   }
 
-  .tabs {
+  /* Step-based UI */
+  .step-section {
+    margin-bottom: 20px;
+  }
+
+  .step-header {
     display: flex;
-    border-bottom: 1px solid #e0e0e0;
-    margin-bottom: 16px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
   }
 
-  .tab {
-    padding: 8px 16px;
-    cursor: pointer;
-    color: #5f6368;
+  .step-number {
+    width: 24px;
+    height: 24px;
+    background: #1a73e8;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
     font-weight: 500;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
+    flex-shrink: 0;
   }
 
-  .tab:hover {
+  .step-title {
+    font-size: 14px;
+    font-weight: 500;
     color: #202124;
   }
 
-  .tab.active {
-    color: #1a73e8;
-    border-bottom-color: #1a73e8;
+  .step-content {
+    margin-left: 34px;
   }
 
-  .tab-content {
-    display: none;
+  .step-description {
+    font-size: 12px;
+    color: #5f6368;
+    margin: 0 0 8px 0;
   }
 
-  .tab-content.active {
-    display: block;
+  .selection-box {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
   }
 
-  .checkbox-group {
+  /* Operation Cards */
+  .operation-cards {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
+  }
+
+  .operation-card {
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .operation-card:hover {
+    border-color: #1a73e8;
+    background: #f8f9fa;
+  }
+
+  .operation-card.selected {
+    border-color: #1a73e8;
+    background: #e8f0fe;
+  }
+
+  .operation-name {
+    font-weight: 500;
+    color: #202124;
+    margin-bottom: 2px;
+  }
+
+  .operation-desc {
+    font-size: 12px;
+    color: #5f6368;
+  }
+
+  /* Forms */
+  .operation-form {
+    margin-top: 8px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 12px;
     margin-bottom: 12px;
   }
 
-  .checkbox-group input[type="checkbox"] {
+  .form-field {
+    flex: 1;
+  }
+
+  .form-field input {
+    margin-bottom: 0;
+  }
+
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #202124;
+    cursor: pointer;
+    margin-top: 20px;
+  }
+
+  .checkbox-label input[type="checkbox"] {
     width: auto;
     margin: 0;
   }
 
-  .checkbox-group label {
-    margin: 0;
-    font-size: 13px;
-    color: #202124;
+  /* Footer */
+  .sidebar-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
   }
 
-  .api-key-display {
-    font-family: monospace;
-    background: #f8f9fa;
-    padding: 4px 8px;
-    border-radius: 4px;
+  .api-key-info {
     font-size: 12px;
+    color: #5f6368;
+  }
+
+  .monospace {
+    font-family: monospace;
+    background: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
   }
 
   a {
@@ -255,10 +317,7 @@
     text-decoration: underline;
   }
 
-  .help-link {
-    font-size: 12px;
-    color: #5f6368;
-    margin-top: 4px;
-    display: block;
+  #status-section {
+    margin-top: 16px;
   }
 </style>
