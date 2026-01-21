@@ -1,0 +1,14 @@
+# clasp config (contains script ID - user-specific)
+.clasp.json
+
+# Node.js (if using npm for clasp)
+node_modules/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
