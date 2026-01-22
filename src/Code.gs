@@ -66,13 +66,18 @@ function showSettings() {
 /**
  * Get sidebar data for initial load.
  * Called from Sidebar.html.
+ * Optimized to minimize API calls.
  * @return {Object} Initial state data.
  */
 function getSidebarData() {
+  // Load settings once instead of multiple calls
+  var settings = getAllSettings();
+  var apiKey = settings.apiKey || null;
+
   return {
-    isConfigured: isConfigured(),
-    apiKeyMasked: getApiKey() ? getApiKey().substring(0, 10) + '...' : null,
-    lastTaskId: getLastTaskId(),
+    isConfigured: !!(apiKey && apiKey.startsWith('sk-cho-')),
+    apiKeyMasked: apiKey ? apiKey.substring(0, 10) + '...' : null,
+    lastTaskId: settings.lastTaskId || null,
     selectionInfo: getSelectionInfo()
   };
 }

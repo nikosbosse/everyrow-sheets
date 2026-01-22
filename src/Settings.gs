@@ -70,6 +70,14 @@ function isConfigured() {
 }
 
 /**
+ * Get all settings (public accessor for optimization).
+ * @return {Object} Settings object.
+ */
+function getAllSettings() {
+  return getSettings_();
+}
+
+/**
  * Get all settings.
  * @return {Object} Settings object.
  * @private

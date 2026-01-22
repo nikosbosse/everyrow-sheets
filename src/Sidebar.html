@@ -39,8 +39,13 @@
               <span style="color: #d93025;">No selection detected</span>
             </div>
             <div id="has-selection">
-              <span><strong id="row-count">0</strong> rows selected</span>
-              <span style="margin-left: 12px;"><strong id="col-count">0</strong> columns</span>
+              <div style="margin-bottom: 6px;">
+                <span class="monospace" id="range-display"></span>
+              </div>
+              <div style="margin-bottom: 6px;">
+                <strong id="row-count">0</strong> data rows, <strong id="col-count">0</strong> columns
+              </div>
+              <div id="headers-preview" style="font-size: 12px; color: #5f6368;"></div>
             </div>
           </div>
           <button class="secondary small" onclick="refreshSelection()">Refresh Selection</button>
@@ -152,9 +157,12 @@
       isConfigured: false,
       apiKeyMasked: null,
       lastTaskId: null,
-      selectionInfo: { hasSelection: false, rowCount: 0, columnCount: 0, headers: [] },
+      selectionInfo: { hasSelection: false, rowCount: 0, columnCount: 0, headers: [], rangeA1: null, sheetName: null },
       selectedOperation: null
     };
+
+    var selectionPollInterval = null;
+    var isPolling = false;
 
     document.addEventListener('DOMContentLoaded', function() {
       loadInitialState();
@@ -165,8 +173,14 @@
         .withSuccessHandler(function(data) {
           state = Object.assign(state, data);
           updateUI();
+          startSelectionPolling();
         })
-        .withFailureHandler(showError)
+        .withFailureHandler(function(error) {
+          // Show setup section on error so user sees something
+          document.getElementById('setup-section').classList.remove('hidden');
+          document.getElementById('main-section').classList.add('hidden');
+          console.error('Failed to load sidebar data:', error);
+        })
         .getSidebarData();
     }
 
@@ -181,11 +195,61 @@
     }
 
     function updateSelectionDisplay() {
-      var hasData = state.selectionInfo.rowCount > 0;
+      var info = state.selectionInfo;
+      var hasData = info.rowCount > 0;
       document.getElementById('no-selection').classList.toggle('hidden', hasData);
       document.getElementById('has-selection').classList.toggle('hidden', !hasData);
-      document.getElementById('row-count').textContent = state.selectionInfo.rowCount;
-      document.getElementById('col-count').textContent = state.selectionInfo.columnCount;
+      document.getElementById('row-count').textContent = info.rowCount;
+      document.getElementById('col-count').textContent = info.columnCount;
+
+      // Show range
+      var rangeText = info.rangeA1 || '';
+      if (info.sheetName && info.rangeA1) {
+        rangeText = info.sheetName + '!' + info.rangeA1;
+      }
+      document.getElementById('range-display').textContent = rangeText;
+
+      // Show column preview
+      var headersEl = document.getElementById('headers-preview');
+      if (info.headers && info.headers.length > 0) {
+        var preview = info.headers.slice(0, 5).join(', ');
+        if (info.headers.length > 5) {
+          preview += ', ...';
+        }
+        headersEl.textContent = 'Columns: ' + preview;
+      } else {
+        headersEl.textContent = '';
+      }
+    }
+
+    function startSelectionPolling() {
+      if (selectionPollInterval) {
+        clearInterval(selectionPollInterval);
+      }
+      // Poll every 1.5 seconds for selection changes
+      selectionPollInterval = setInterval(function() {
+        if (!isPolling && state.isConfigured) {
+          refreshSelectionSilent();
+        }
+      }, 1500);
+    }
+
+    function refreshSelectionSilent() {
+      isPolling = true;
+      google.script.run
+        .withSuccessHandler(function(info) {
+          isPolling = false;
+          // Only update if selection actually changed
+          if (info.rowCount !== state.selectionInfo.rowCount ||
+              info.columnCount !== state.selectionInfo.columnCount) {
+            state.selectionInfo = info;
+            updateSelectionDisplay();
+          }
+        })
+        .withFailureHandler(function() {
+          isPolling = false;
+        })
+        .getSelectionInfo();
     }
 
     function refreshSelection() {
@@ -290,11 +354,21 @@
       document.getElementById('status-success').innerHTML = message;
     }
 
-    function showError(error) {
+    function escapeHtml(text) {
+      var div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showError(error, sessionId) {
       hideLoading();
       document.getElementById('status-section').classList.remove('hidden');
       document.getElementById('status-error').classList.remove('hidden');
-      document.getElementById('status-error').textContent = error.message || String(error);
+      var message = escapeHtml(error.message || String(error));
+      if (sessionId) {
+        message += getSessionLink(sessionId);
+      }
+      document.getElementById('status-error').innerHTML = message;
     }
 
     function clearStatus() {
@@ -370,15 +444,22 @@
         .runDedupe(relation);
     }
 
+    function getSessionLink(sessionId) {
+      if (!sessionId) return '';
+      var url = 'https://cohort.futuresearch.ai/sessions/' + sessionId;
+      return '<br><a href="' + url + '" target="_blank">View session in Cohort</a>';
+    }
+
     function handleOperationResult(result) {
+      var sessionLink = getSessionLink(result.sessionId);
       if (result.status === 'completed') {
-        showSuccess('<strong>Done!</strong> ' + result.rowCount + ' rows written to a new sheet tab.');
+        showSuccess('<strong>Done!</strong> ' + result.rowCount + ' rows written to a new sheet tab.' + sessionLink);
         loadInitialState();
       } else if (result.status === 'timeout') {
-        showError({ message: result.message });
+        showError({ message: result.message }, result.sessionId);
         loadInitialState();
       } else {
-        showError({ message: 'Unexpected result: ' + JSON.stringify(result) });
+        showError({ message: 'Unexpected result: ' + JSON.stringify(result) }, result.sessionId);
       }
     }
   </script>

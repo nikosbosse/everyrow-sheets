@@ -142,9 +142,9 @@ function runRank(task, fieldName, ascending) {
   // Create input artifact first
   var inputArtifactId = createInputArtifact(records, session.id);
 
-  // Build rank payload
+  // Build rank payload - use 'int' for Cohort's custom schema format
   var responseSchema = {};
-  responseSchema[fieldName] = { type: 'number' };
+  responseSchema[fieldName] = { type: 'int', description: 'Score for ranking' };
 
   var payload = {
     task_type: 'deep_rank',
@@ -156,6 +156,7 @@ function runRank(task, fieldName, ascending) {
       ascending_order: ascending
     },
     input_artifacts: [inputArtifactId],
+    context_artifacts: [],
     join_with_input: true
   };
 
@@ -165,11 +166,12 @@ function runRank(task, fieldName, ascending) {
   if (result.status === 'completed') {
     // Fetch results and write to sheet
     var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = (artifacts && artifacts[0] && artifacts[0].data) || [];
+    var resultRecords = extractArtifactData(artifacts);
     writeResultsToSheet(resultRecords, 'Rank Results');
-    return { status: 'completed', rowCount: resultRecords.length };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
   }
 
+  result.sessionId = session.id;
   return result;
 }
 
@@ -188,18 +190,19 @@ function runScreen(task) {
   // Create input artifact first
   var inputArtifactId = createInputArtifact(records, session.id);
 
-  // Build payload
+  // Build payload - use 'bool' and 'str' for Cohort's custom schema format
   var payload = {
     task_type: 'deep_screen',
     processing_mode: 'map',
     query: {
       task: task,
       response_schema: {
-        passes_screen: { type: 'boolean' },
-        reason: { type: 'string' }
+        passes_screen: { type: 'bool', description: 'Whether the row passes the screen' },
+        reason: { type: 'str', description: 'Reason for the decision' }
       }
     },
     input_artifacts: [inputArtifactId],
+    context_artifacts: [],
     join_with_input: true
   };
 
@@ -209,11 +212,12 @@ function runScreen(task) {
   if (result.status === 'completed') {
     // Fetch results and write to sheet
     var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = (artifacts && artifacts[0] && artifacts[0].data) || [];
+    var resultRecords = extractArtifactData(artifacts);
     writeResultsToSheet(resultRecords, 'Screen Results');
-    return { status: 'completed', rowCount: resultRecords.length };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
   }
 
+  result.sessionId = session.id;
   return result;
 }
 
@@ -248,12 +252,48 @@ function runDedupe(equivalenceRelation) {
   if (result.status === 'completed') {
     // Fetch results and write to sheet
     var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = (artifacts && artifacts[0] && artifacts[0].data) || [];
+    var resultRecords = extractArtifactData(artifacts);
     writeResultsToSheet(resultRecords, 'Dedupe Results');
-    return { status: 'completed', rowCount: resultRecords.length };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
   }
 
+  result.sessionId = session.id;
   return result;
+}
+
+/**
+ * Extract data from artifact response.
+ * Handles both group artifacts (with nested artifacts array) and standalone artifacts.
+ * @param {Object[]} artifacts - Array of artifacts from API.
+ * @return {Object[]} Array of data records.
+ */
+function extractArtifactData(artifacts) {
+  if (!artifacts || artifacts.length === 0) return [];
+
+  var artifact = artifacts[0];
+
+  // If it's a group with nested artifacts, extract data from each child
+  if (artifact.type === 'group' && artifact.artifacts && artifact.artifacts.length > 0) {
+    var results = [];
+    for (var i = 0; i < artifact.artifacts.length; i++) {
+      if (artifact.artifacts[i].data) {
+        results.push(artifact.artifacts[i].data);
+      }
+    }
+    return results;
+  }
+
+  // If it has direct data array, return it
+  if (Array.isArray(artifact.data)) {
+    return artifact.data;
+  }
+
+  // Single artifact with data object
+  if (artifact.data) {
+    return [artifact.data];
+  }
+
+  return [];
 }
 
 /**
@@ -270,7 +310,7 @@ function retrieveTaskResults(taskId, sheetName) {
   }
 
   var artifacts = getArtifacts([status.artifact_id]);
-  var records = (artifacts && artifacts[0] && artifacts[0].data) || [];
+  var records = extractArtifactData(artifacts);
 
   if (records.length === 0) {
     throw new Error('Task completed but no results found.');
