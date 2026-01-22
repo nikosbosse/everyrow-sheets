@@ -38,7 +38,7 @@ function makeApiRequest(method, path, body) {
   var responseText = response.getContentText();
 
   if (statusCode === 401) {
-    throw new Error('Invalid API key. Please check your API key in Settings.');
+    throw new Error('Invalid API key. Please insert valid API key below.');
   }
 
   if (statusCode === 403) {

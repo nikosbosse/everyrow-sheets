@@ -297,6 +297,102 @@ function extractArtifactData(artifacts) {
 }
 
 /**
+ * Run an Agent Map operation.
+ * @param {string} task - The task description for the agent.
+ * @return {Object} Operation result.
+ */
+function runAgentMap(task) {
+  // Get data from selection
+  var records = selectionToRecords();
+
+  // Create session
+  var session = createSession('Sheets Agent - ' + new Date().toISOString());
+
+  // Create input artifact first
+  var inputArtifactId = createInputArtifact(records, session.id);
+
+  // Build payload
+  var payload = {
+    task_type: 'agent',
+    processing_mode: 'map',
+    query: {
+      task: task,
+      effort_level: 'low'
+    },
+    input_artifacts: [inputArtifactId],
+    context_artifacts: [],
+    join_with_input: true
+  };
+
+  // Run task
+  var result = runTaskWithPolling(payload, session.id);
+
+  if (result.status === 'completed') {
+    // Fetch results and write to sheet
+    var artifacts = getArtifacts([result.artifactId]);
+    var resultRecords = extractArtifactData(artifacts);
+    writeResultsToSheet(resultRecords, 'Agent Results');
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+  }
+
+  result.sessionId = session.id;
+  return result;
+}
+
+/**
+ * Run a Merge operation combining two tables.
+ * @param {Object[]} leftRecords - Records from the left/primary table.
+ * @param {Object[]} rightRecords - Records from the right/secondary table.
+ * @param {string} task - Description of how to merge the tables.
+ * @param {string} [mergeOnLeft] - Optional column name to match on from left table.
+ * @param {string} [mergeOnRight] - Optional column name to match on from right table.
+ * @return {Object} Operation result.
+ */
+function runMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight) {
+  // Create session
+  var session = createSession('Sheets Merge - ' + new Date().toISOString());
+
+  // Create both input artifacts
+  var leftArtifactId = createInputArtifact(leftRecords, session.id);
+  var rightArtifactId = createInputArtifact(rightRecords, session.id);
+
+  // Build payload
+  var query = {
+    task: task
+  };
+  if (mergeOnLeft) {
+    query.merge_on_left = mergeOnLeft;
+  }
+  if (mergeOnRight) {
+    query.merge_on_right = mergeOnRight;
+  }
+
+  var payload = {
+    task_type: 'deep_merge',
+    processing_mode: 'map',
+    query: query,
+    input_artifacts: [leftArtifactId],
+    context_artifacts: [rightArtifactId],
+    twin_artifact_id: rightArtifactId,
+    join_with_input: true
+  };
+
+  // Run task
+  var result = runTaskWithPolling(payload, session.id);
+
+  if (result.status === 'completed') {
+    // Fetch results and write to sheet
+    var artifacts = getArtifacts([result.artifactId]);
+    var resultRecords = extractArtifactData(artifacts);
+    writeResultsToSheet(resultRecords, 'Merge Results');
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+  }
+
+  result.sessionId = session.id;
+  return result;
+}
+
+/**
  * Retrieve and write results for a completed task.
  * @param {string} taskId - Task ID.
  * @param {string} sheetName - Name for the results sheet.

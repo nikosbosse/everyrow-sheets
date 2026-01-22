@@ -10,9 +10,7 @@
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
   ui.createMenu('everyrow')
-    .addItem('Open Sidebar', 'showSidebar')
-    .addSeparator()
-    .addItem('Settings', 'showSettings')
+    .addItem('Open', 'showSidebar')
     .addToUi();
 }
 
@@ -34,33 +32,6 @@ function showSidebar() {
  */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
-}
-
-/**
- * Show settings dialog.
- */
-function showSettings() {
-  var ui = SpreadsheetApp.getUi();
-  var currentKey = getApiKey();
-  var maskedKey = currentKey ? currentKey.substring(0, 10) + '...' : '(not set)';
-
-  var result = ui.prompt(
-    'API Key Settings',
-    'Current API key: ' + maskedKey + '\n\nEnter new API key (sk-cho-...):\n(Get your key at https://cohort.futuresearch.ai/settings/api-keys)',
-    ui.ButtonSet.OK_CANCEL
-  );
-
-  if (result.getSelectedButton() === ui.Button.OK) {
-    var newKey = result.getResponseText().trim();
-    if (newKey) {
-      if (!newKey.startsWith('sk-cho-')) {
-        ui.alert('Invalid Key', 'API key should start with "sk-cho-"', ui.ButtonSet.OK);
-        return;
-      }
-      saveApiKey(newKey);
-      ui.alert('Saved', 'API key saved successfully.', ui.ButtonSet.OK);
-    }
-  }
 }
 
 /**
