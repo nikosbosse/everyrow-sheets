@@ -1,12 +1,14 @@
 # everyrow Sheets
 
-Google Sheets add-on for running everyrow operations (rank, dedupe, screen) directly from your spreadsheets.
+Google Sheets add-on for running everyrow operations directly from your spreadsheets.
 
 ## Features
 
 - **Rank**: Score and sort rows based on natural language criteria
 - **Screen**: Filter rows that match specific conditions
 - **Dedupe**: Remove duplicate rows based on semantic similarity
+- **Agent**: Run AI research on each row (find LinkedIn pages, company info, etc.)
+- **Merge**: Combine two tables using AI-powered matching
 
 ## Architecture
 
@@ -50,6 +52,7 @@ pnpm open         # Open Apps Script editor in browser
 pnpm logs         # View execution logs
 pnpm logs:watch   # Stream logs in real-time
 pnpm pull         # Pull remote changes (if edited in browser)
+pnpm test:api     # Test API integration (requires API key argument)
 ```
 
 ## User Setup
@@ -63,25 +66,18 @@ pnpm pull         # Pull remote changes (if edited in browser)
 ### 2. Configure Add-on
 
 1. Open a Google Sheet
-2. Click **everyrow → Settings** in the menu bar
-3. Paste your API key and save
+2. Click **everyrow → Open** in the menu bar
+3. Paste your API key in the sidebar and save
 
 ## Usage
 
-### Quick Actions (via Menu)
-
-1. Select your data (including header row)
-2. Click **everyrow** menu
-3. Choose **Quick Rank**, **Quick Screen**, or **Quick Dedupe**
-4. Enter your criteria
-5. Results appear in a new sheet
-
-### Sidebar (for More Options)
-
-1. Click **everyrow → Open Sidebar**
-2. Configure operation parameters
-3. Click the operation button
-4. Monitor status in the sidebar
+1. Select your data in the sheet (including header row)
+2. Click **everyrow → Open** to open the sidebar
+3. The sidebar shows your selection info (range, row count, columns)
+4. Choose an operation (Rank, Screen, Dedupe, Agent, or Merge)
+5. Enter your criteria/instructions
+6. Click the run button
+7. Results appear in a new sheet tab
 
 ### Example Operations
 
@@ -94,6 +90,12 @@ pnpm pull         # Pull remote changes (if edited in browser)
 **Dedupe:**
 > "Same company, possibly with different name variations or abbreviations"
 
+**Agent:**
+> "Research this company and find their LinkedIn page, headquarters location, and founding year"
+
+**Merge:**
+> "Match companies from both tables by name, even if spellings differ slightly"
+
 ## File Structure
 
 ```
@@ -101,31 +103,24 @@ everyrow-sheets/
 ├── src/
 │   ├── Code.gs           # Menu, entry points
 │   ├── ApiClient.gs      # HTTP client for Engine API
-│   ├── Operations.gs     # Rank, dedupe, screen logic
+│   ├── Operations.gs     # Rank, dedupe, screen, agent, merge logic
 │   ├── DataHandling.gs   # Sheet ↔ JSON conversion
 │   ├── Settings.gs       # API key storage
 │   ├── Sidebar.html      # Main UI
 │   ├── Styles.html       # CSS
 │   └── appsscript.json   # Manifest (scopes)
 ├── scripts/
-│   └── setup.js          # Interactive setup script
+│   ├── setup.js          # Interactive setup script
+│   └── test-api.js       # API integration test
 ├── package.json
 └── README.md
 ```
-
-## Timeout Handling
-
-Operations may take several minutes. If the Apps Script execution times out:
-
-1. The task ID is saved automatically
-2. Use **everyrow → Check Previous Task** to check status
-3. Once complete, results can be retrieved to a new sheet
 
 ## Troubleshooting
 
 ### "API key not configured"
 
-Open **everyrow → Settings** and enter your API key.
+Open **everyrow → Open** and enter your API key in the sidebar.
 
 ### "Invalid API key"
 
@@ -137,7 +132,7 @@ Select your data including the header row. The first row is used as column names
 
 ### Operation timed out
 
-Use **Check Previous Task** from the menu. The operation continues running on the server.
+The operation continues running on the server. The task ID is saved, but currently you'll need to wait and retry.
 
 ### Setup fails with "Apps Script API not enabled"
 
@@ -148,10 +143,9 @@ Visit https://script.google.com/home/usersettings and enable the API.
 The add-on uses these Cohort Engine API endpoints:
 
 - `POST /sessions/create` - Create a session for grouping tasks
-- `POST /artifacts` - Create input artifact from sheet data
-- `POST /tasks` - Submit rank/screen/dedupe task
+- `POST /tasks` - Submit operations (create_group, deep_rank, deep_screen, dedupe, agent, deep_merge)
 - `GET /tasks/{id}/status` - Poll task status
-- `GET /artifacts/{id}` - Retrieve results
+- `GET /artifacts?artifact_ids=` - Retrieve results
 
 ## License
 
