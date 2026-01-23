@@ -192,7 +192,7 @@ const apiKey = process.argv[2];
 
 if (!apiKey) {
   console.error('Usage: node scripts/test-api.js <api-key>');
-  console.error('  Get your API key at: https://cohort.futuresearch.ai/settings/api-keys');
+  console.error('  Get your API key at: https://everyrow.io/api-key');
   process.exit(1);
 }
 

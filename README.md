@@ -59,7 +59,7 @@ pnpm test:api     # Test API integration (requires API key argument)
 
 ### 1. Get API Key
 
-1. Go to [cohort.futuresearch.ai/settings/api-keys](https://cohort.futuresearch.ai/settings/api-keys)
+1. Go to [everyrow.io/api-key](https://everyrow.io/api-key)
 2. Create a new API key
 3. Copy the key (starts with `sk-cho-`)
 
@@ -124,7 +124,7 @@ Open **everyrow → Open** and enter your API key in the sidebar.
 
 ### "Invalid API key"
 
-Ensure your key starts with `sk-cho-` and is active at [cohort.futuresearch.ai/settings/api-keys](https://cohort.futuresearch.ai/settings/api-keys).
+Ensure your key starts with `sk-cho-` and is active at [everyrow.io/api-key](https://everyrow.io/api-key).
 
 ### "Selection must have at least 2 rows"
 

@@ -13,7 +13,11 @@
     "logs": "clasp logs",
     "logs:watch": "clasp logs --watch",
     "deploy": "clasp deploy",
-    "versions": "clasp versions"
+    "versions": "clasp versions",
+    "deploy:push": "node scripts/deploy.js push",
+    "deploy:version": "node scripts/deploy.js version",
+    "deploy:status": "node scripts/deploy.js status",
+    "deploy:help": "node scripts/deploy.js help"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"
