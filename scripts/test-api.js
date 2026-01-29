@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Test script to verify the Cohort Engine API integration works.
+ * Test script to verify the Cohort Engine public API v0 integration works.
  * Run with: node scripts/test-api.js <api-key>
  */
 
-const API_BASE_URL = 'https://engine.futuresearch.ai';
+const API_BASE_URL = 'https://engine.futuresearch.ai/api/v0';
 
 async function makeApiRequest(method, path, body, apiKey) {
   const url = API_BASE_URL + path;
@@ -48,30 +48,66 @@ async function sleep(ms) {
 }
 
 /**
- * Extract data from artifact response.
- * Handles both group artifacts (with nested artifacts array) and standalone artifacts.
+ * Extract data from task result response.
+ * The public API v0 returns data directly in the result.
  */
-function extractArtifactData(artifacts) {
-  if (!artifacts || artifacts.length === 0) return [];
+function extractResultData(taskResult) {
+  if (!taskResult || !taskResult.data) return [];
 
-  const artifact = artifacts[0];
-
-  // If it's a group with nested artifacts, extract data from each child
-  if (artifact.type === 'group' && artifact.artifacts && artifact.artifacts.length > 0) {
-    return artifact.artifacts.map(child => child.data).filter(Boolean);
+  // Public API returns data directly as list (for tables) or single record (for scalars)
+  if (Array.isArray(taskResult.data)) {
+    return taskResult.data;
   }
 
-  // If it has direct data array, return it
-  if (Array.isArray(artifact.data)) {
-    return artifact.data;
-  }
+  // Single record - wrap in array
+  return [taskResult.data];
+}
 
-  // Single artifact with data object
-  if (artifact.data) {
-    return [artifact.data];
-  }
+/**
+ * Extract and format screen results.
+ * Adds a 'reason' column from research.screening_result.
+ */
+function extractScreenResults(taskResult) {
+  const records = extractResultData(taskResult);
 
-  return [];
+  return records.map(record => {
+    const result = {};
+
+    // Copy all fields except 'research'
+    for (const key in record) {
+      if (key !== 'research') {
+        result[key] = record[key];
+      }
+    }
+
+    // Add reason from research.screening_result if available
+    if (record.research && record.research.screening_result) {
+      result.reason = record.research.screening_result;
+    }
+
+    return result;
+  });
+}
+
+/**
+ * Extract dedupe results, filtering to only selected (non-duplicate) rows.
+ */
+function extractDedupeResults(taskResult) {
+  const records = extractResultData(taskResult);
+
+  // Filter to only selected rows
+  const dedupedRecords = records.filter(record => record.selected === true);
+
+  // Remove deduplication metadata columns
+  return dedupedRecords.map(record => {
+    const result = {};
+    for (const key in record) {
+      if (key !== 'selected' && key !== 'equivalence_class_id' && key !== 'equivalence_class_name') {
+        result[key] = record[key];
+      }
+    }
+    return result;
+  });
 }
 
 async function pollTaskStatus(taskId, apiKey, maxWaitMs = 120000) {
@@ -99,81 +135,46 @@ async function pollTaskStatus(taskId, apiKey, maxWaitMs = 120000) {
 }
 
 async function runTests(apiKey) {
-  console.log('\n🧪 Testing Cohort Engine API Integration\n');
+  console.log('\n🧪 Testing Cohort Engine Public API v0 Integration\n');
 
-  // Test 1: Create Session
-  console.log('1. Creating session...');
-  const sessionResult = await makeApiRequest('POST', '/sessions/create', {
-    name: 'API Test - ' + new Date().toISOString()
-  }, apiKey);
-  const sessionId = sessionResult.session_id;
-  console.log(`   ✓ Session created: ${sessionId}\n`);
-
-  // Test 2: Create Group (input data)
-  console.log('2. Creating input data via CREATE_GROUP task...');
   const testData = [
     { name: 'Apple', industry: 'Technology', employees: 150000 },
     { name: 'Google', industry: 'Technology', employees: 180000 },
     { name: 'Acme Corp', industry: 'Manufacturing', employees: 500 }
   ];
 
-  const createGroupPayload = {
-    task_type: 'create_group',
-    processing_mode: 'transform',
-    query: {
-      data_to_create: testData
-    },
-    input_artifacts: []
-  };
+  // Test 1: Run Rank Operation (with inline data - no need to create session/artifact separately)
+  console.log('1. Running /operations/rank with inline data...');
 
-  const createTask = await makeApiRequest('POST', '/tasks', {
-    payload: createGroupPayload,
-    session_id: sessionId
-  }, apiKey);
-  console.log(`   Task submitted: ${createTask.task_id}`);
-
-  const createStatus = await pollTaskStatus(createTask.task_id, apiKey);
-  const inputArtifactId = createStatus.artifact_id;
-  console.log(`   ✓ Input artifact created: ${inputArtifactId}\n`);
-
-  // Test 3: Run Deep Rank
-  console.log('3. Running DEEP_RANK task...');
-  const rankPayload = {
-    task_type: 'deep_rank',
-    processing_mode: 'map',
-    query: {
-      task: 'Rank companies by size (number of employees)',
-      response_schema: {
-        score: { type: 'int', description: 'Score based on company size' }
+  const rankResponse = await makeApiRequest('POST', '/operations/rank', {
+    input: testData,
+    task: 'Rank companies by size (number of employees)',
+    sort_by: 'score',
+    ascending: false,
+    response_schema: {
+      type: 'object',
+      properties: {
+        score: { type: 'number', description: 'Score based on company size' }
       },
-      field_to_sort_by: 'score',
-      ascending_order: false
-    },
-    input_artifacts: [inputArtifactId],
-    context_artifacts: [],
-    join_with_input: true
-  };
-
-  const rankTask = await makeApiRequest('POST', '/tasks', {
-    payload: rankPayload,
-    session_id: sessionId
+      required: ['score']
+    }
   }, apiKey);
-  console.log(`   Task submitted: ${rankTask.task_id}`);
 
-  const rankStatus = await pollTaskStatus(rankTask.task_id, apiKey);
+  const taskId = rankResponse.task_id;
+  const sessionId = rankResponse.session_id;
+  console.log(`   Task submitted: ${taskId}`);
+  console.log(`   Session (auto-created): ${sessionId}`);
+
+  // Test 2: Poll for completion
+  console.log('\n2. Polling for completion...');
+  const rankStatus = await pollTaskStatus(taskId, apiKey);
   console.log(`   ✓ Rank completed, artifact: ${rankStatus.artifact_id}\n`);
 
-  // Test 4: Fetch Results
-  console.log('4. Fetching results...');
-  const artifacts = await makeApiRequest(
-    'GET',
-    `/artifacts?artifact_ids=${rankStatus.artifact_id}`,
-    null,
-    apiKey
-  );
+  // Test 3: Fetch Results using /tasks/{id}/result
+  console.log('3. Fetching results via /tasks/{id}/result...');
+  const taskResult = await makeApiRequest('GET', `/tasks/${taskId}/result`, null, apiKey);
 
-  // Extract data from artifact - handles both group and standalone artifacts
-  let resultData = extractArtifactData(artifacts);
+  const resultData = extractResultData(taskResult);
 
   if (resultData && resultData.length > 0) {
     console.log(`   ✓ Got ${resultData.length} results:\n`);
@@ -183,6 +184,58 @@ async function runTests(apiKey) {
   } else {
     console.log('   ⚠ No data found');
   }
+
+  // Test 4: Run Screen Operation
+  console.log('\n4. Running /operations/screen...');
+  const screenResponse = await makeApiRequest('POST', '/operations/screen', {
+    input: testData,
+    task: 'Filter to only technology companies',
+    // Screen requires a response_schema with at least one boolean field
+    response_schema: {
+      type: 'object',
+      properties: {
+        passes_screen: { type: 'boolean', description: 'Whether the row passes the screen' }
+      },
+      required: ['passes_screen']
+    }
+  }, apiKey);
+
+  console.log(`   Task submitted: ${screenResponse.task_id}`);
+  const screenStatus = await pollTaskStatus(screenResponse.task_id, apiKey);
+  console.log(`   ✓ Screen completed\n`);
+
+  const screenResult = await makeApiRequest('GET', `/tasks/${screenResponse.task_id}/result`, null, apiKey);
+  const screenData = extractScreenResults(screenResult);
+  console.log(`   Results: ${screenData.length} rows (filtered from ${testData.length})`);
+  screenData.forEach((row, i) => {
+    console.log(`   ${i + 1}. ${row.name}: passes_screen=${row.passes_screen}, reason="${row.reason}"`);
+  });
+
+  // Test 5: Run Dedupe Operation
+  console.log('\n5. Running /operations/dedupe...');
+  const dedupeData = [
+    { name: 'Apple Inc', industry: 'Technology' },
+    { name: 'Apple', industry: 'Tech' },
+    { name: 'Google', industry: 'Technology' },
+    { name: 'Alphabet (Google)', industry: 'Tech' }
+  ];
+
+  const dedupeResponse = await makeApiRequest('POST', '/operations/dedupe', {
+    input: dedupeData,
+    equivalence_relation: 'Same company (different names or spellings)'
+  }, apiKey);
+
+  console.log(`   Task submitted: ${dedupeResponse.task_id}`);
+  const dedupeStatus = await pollTaskStatus(dedupeResponse.task_id, apiKey);
+  console.log(`   ✓ Dedupe completed\n`);
+
+  const dedupeResult = await makeApiRequest('GET', `/tasks/${dedupeResponse.task_id}/result`, null, apiKey);
+  const dedupeResultData = extractResultData(dedupeResult);
+  const selectedCount = dedupeResultData.filter(r => r.selected).length;
+  console.log(`   Results: ${dedupeResultData.length} rows with ${selectedCount} unique (selected=true)`);
+  dedupeResultData.forEach((row, i) => {
+    console.log(`   ${i + 1}. selected=${row.selected}, class="${row.equivalence_class_name}", ${row.name}`);
+  });
 
   console.log('\n✅ All tests passed!\n');
 }

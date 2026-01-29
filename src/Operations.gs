@@ -1,6 +1,6 @@
 /**
  * Core everyrow operations: rank, dedupe, screen.
- * Handles task submission, polling, and result retrieval.
+ * Uses the public API v0 endpoints.
  */
 
 // Maximum time to poll before giving up (5 minutes)
@@ -13,16 +13,12 @@ var INITIAL_POLL_INTERVAL_MS = 2000;
 var MAX_POLL_INTERVAL_MS = 10000;
 
 /**
- * Run a task with polling until completion or timeout.
- * @param {Object} payload - Task payload.
- * @param {string} sessionId - Session ID.
- * @return {Object} Result with status, artifactId, data.
+ * Poll a task until completion or timeout.
+ * @param {string} taskId - Task ID to poll.
+ * @param {string} sessionId - Session ID (for result tracking).
+ * @return {Object} Result with status, taskId, sessionId.
  */
-function runTaskWithPolling(payload, sessionId) {
-  // Submit the task
-  var task = submitTask(payload, sessionId);
-  var taskId = task.task_id;
-
+function pollTaskUntilComplete(taskId, sessionId) {
   // Save task ID for resumption
   saveLastTaskId(taskId);
 
@@ -40,8 +36,8 @@ function runTaskWithPolling(payload, sessionId) {
       return {
         status: 'completed',
         taskId: taskId,
-        artifactId: status.artifact_id,
-        data: null
+        sessionId: sessionId,
+        artifactId: status.artifact_id
       };
     }
 
@@ -58,6 +54,7 @@ function runTaskWithPolling(payload, sessionId) {
   return {
     status: 'timeout',
     taskId: taskId,
+    sessionId: sessionId,
     message: 'Task is still running. Use "Check Previous Task" to check status later.'
   };
 }
@@ -98,31 +95,6 @@ function checkPreviousTask(taskId) {
 }
 
 /**
- * Create an input artifact from sheet data using CREATE_GROUP task.
- * @param {Object[]} records - Array of record objects.
- * @param {string} sessionId - Session ID.
- * @return {string} Artifact ID.
- */
-function createInputArtifact(records, sessionId) {
-  var payload = {
-    task_type: 'create_group',
-    processing_mode: 'transform',
-    query: {
-      data_to_create: records
-    },
-    input_artifacts: []
-  };
-
-  var result = runTaskWithPolling(payload, sessionId);
-
-  if (result.status !== 'completed') {
-    throw new Error('Failed to create input data: ' + (result.message || 'Unknown error'));
-  }
-
-  return result.artifactId;
-}
-
-/**
  * Run a Deep Rank operation.
  * @param {string} task - The ranking task description.
  * @param {string} fieldName - Field name for the score (default: 'score').
@@ -136,42 +108,30 @@ function runRank(task, fieldName, ascending) {
   // Get data from selection
   var records = selectionToRecords();
 
-  // Create session
-  var session = createSession('Sheets Rank - ' + new Date().toISOString());
-
-  // Create input artifact first
-  var inputArtifactId = createInputArtifact(records, session.id);
-
-  // Build rank payload - use 'int' for Cohort's custom schema format
-  var responseSchema = {};
-  responseSchema[fieldName] = { type: 'int', description: 'Score for ranking' };
-
-  var payload = {
-    task_type: 'deep_rank',
-    processing_mode: 'map',
-    query: {
-      task: task,
-      response_schema: responseSchema,
-      field_to_sort_by: fieldName,
-      ascending_order: ascending
-    },
-    input_artifacts: [inputArtifactId],
-    context_artifacts: [],
-    join_with_input: true
+  // Build JSON Schema for the response
+  var responseSchema = {
+    type: 'object',
+    properties: {},
+    required: [fieldName]
   };
+  responseSchema.properties[fieldName] = { type: 'number', description: 'Score for ranking' };
 
-  // Run task
-  var result = runTaskWithPolling(payload, session.id);
+  // Submit rank operation directly with inline data
+  var response = submitRank(records, task, fieldName, ascending, responseSchema);
+  var taskId = response.task_id;
+  var sessionId = response.session_id;
+
+  // Poll for completion
+  var result = pollTaskUntilComplete(taskId, sessionId);
 
   if (result.status === 'completed') {
     // Fetch results and write to sheet
-    var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = extractArtifactData(artifacts);
+    var taskResult = getTaskResult(taskId);
+    var resultRecords = extractResultData(taskResult);
     writeResultsToSheet(resultRecords, 'Rank Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
   }
 
-  result.sessionId = session.id;
   return result;
 }
 
@@ -184,40 +144,31 @@ function runScreen(task) {
   // Get data from selection
   var records = selectionToRecords();
 
-  // Create session
-  var session = createSession('Sheets Screen - ' + new Date().toISOString());
-
-  // Create input artifact first
-  var inputArtifactId = createInputArtifact(records, session.id);
-
-  // Build payload - use 'bool' and 'str' for Cohort's custom schema format
-  var payload = {
-    task_type: 'deep_screen',
-    processing_mode: 'map',
-    query: {
-      task: task,
-      response_schema: {
-        passes_screen: { type: 'bool', description: 'Whether the row passes the screen' },
-        reason: { type: 'str', description: 'Reason for the decision' }
-      }
+  // Screen requires a response_schema with at least one boolean field
+  var responseSchema = {
+    type: 'object',
+    properties: {
+      passes_screen: { type: 'boolean', description: 'Whether the row passes the screen' }
     },
-    input_artifacts: [inputArtifactId],
-    context_artifacts: [],
-    join_with_input: true
+    required: ['passes_screen']
   };
 
-  // Run task
-  var result = runTaskWithPolling(payload, session.id);
+  // Submit screen operation directly with inline data
+  var response = submitScreen(records, task, responseSchema);
+  var taskId = response.task_id;
+  var sessionId = response.session_id;
+
+  // Poll for completion
+  var result = pollTaskUntilComplete(taskId, sessionId);
 
   if (result.status === 'completed') {
     // Fetch results and write to sheet
-    var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = extractArtifactData(artifacts);
+    var taskResult = getTaskResult(taskId);
+    var resultRecords = extractScreenResults(taskResult);
     writeResultsToSheet(resultRecords, 'Screen Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
   }
 
-  result.sessionId = session.id;
   return result;
 }
 
@@ -230,70 +181,98 @@ function runDedupe(equivalenceRelation) {
   // Get data from selection
   var records = selectionToRecords();
 
-  // Create session
-  var session = createSession('Sheets Dedupe - ' + new Date().toISOString());
+  // Submit dedupe operation directly with inline data
+  var response = submitDedupe(records, equivalenceRelation);
+  var taskId = response.task_id;
+  var sessionId = response.session_id;
 
-  // Create input artifact first
-  var inputArtifactId = createInputArtifact(records, session.id);
-
-  // Build payload
-  var payload = {
-    task_type: 'dedupe',
-    processing_mode: 'transform',
-    query: {
-      equivalence_relation: equivalenceRelation
-    },
-    input_artifacts: [inputArtifactId]
-  };
-
-  // Run task
-  var result = runTaskWithPolling(payload, session.id);
+  // Poll for completion
+  var result = pollTaskUntilComplete(taskId, sessionId);
 
   if (result.status === 'completed') {
     // Fetch results and write to sheet
-    var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = extractArtifactData(artifacts);
+    // Results include: selected (bool), equivalence_class_id, equivalence_class_name
+    // Users can filter by selected=true to get deduplicated rows
+    var taskResult = getTaskResult(taskId);
+    var resultRecords = extractResultData(taskResult);
     writeResultsToSheet(resultRecords, 'Dedupe Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
   }
 
-  result.sessionId = session.id;
   return result;
 }
 
 /**
- * Extract data from artifact response.
- * Handles both group artifacts (with nested artifacts array) and standalone artifacts.
- * @param {Object[]} artifacts - Array of artifacts from API.
+ * Extract data from task result response.
+ * The public API v0 returns data directly in the result.
+ * @param {Object} taskResult - Task result from getTaskResult().
  * @return {Object[]} Array of data records.
  */
-function extractArtifactData(artifacts) {
-  if (!artifacts || artifacts.length === 0) return [];
+function extractResultData(taskResult) {
+  if (!taskResult || !taskResult.data) return [];
 
-  var artifact = artifacts[0];
+  // Public API returns data directly as list (for tables) or single record (for scalars)
+  if (Array.isArray(taskResult.data)) {
+    return taskResult.data;
+  }
 
-  // If it's a group with nested artifacts, extract data from each child
-  if (artifact.type === 'group' && artifact.artifacts && artifact.artifacts.length > 0) {
-    var results = [];
-    for (var i = 0; i < artifact.artifacts.length; i++) {
-      if (artifact.artifacts[i].data) {
-        results.push(artifact.artifacts[i].data);
+  // Single record - wrap in array
+  return [taskResult.data];
+}
+
+/**
+ * Extract and format screen results.
+ * Adds a 'reason' column from research.screening_result.
+ * @param {Object} taskResult - Task result from getTaskResult().
+ * @return {Object[]} Array of data records with passes_screen and reason.
+ */
+function extractScreenResults(taskResult) {
+  var records = extractResultData(taskResult);
+
+  // Format results: extract reason from research.screening_result
+  return records.map(function(record) {
+    var result = {};
+
+    // Copy all fields except 'research'
+    for (var key in record) {
+      if (key !== 'research') {
+        result[key] = record[key];
       }
     }
-    return results;
-  }
 
-  // If it has direct data array, return it
-  if (Array.isArray(artifact.data)) {
-    return artifact.data;
-  }
+    // Add reason from research.screening_result if available
+    if (record.research && record.research.screening_result) {
+      result.reason = record.research.screening_result;
+    }
 
-  // Single artifact with data object
-  if (artifact.data) {
-    return [artifact.data];
-  }
+    return result;
+  });
+}
 
-  return [];
+/**
+ * Extract dedupe results, filtering to only selected (non-duplicate) rows.
+ * @param {Object} taskResult - Task result from getTaskResult().
+ * @return {Object[]} Array of deduplicated records.
+ */
+function extractDedupeResults(taskResult) {
+  var records = extractResultData(taskResult);
+
+  // Filter to only selected rows (the canonical representative of each group)
+  var dedupedRecords = records.filter(function(record) {
+    return record.selected === true;
+  });
+
+  // Remove deduplication metadata columns from output
+  return dedupedRecords.map(function(record) {
+    var result = {};
+    for (var key in record) {
+      // Skip internal dedupe fields
+      if (key !== 'selected' && key !== 'equivalence_class_id' && key !== 'equivalence_class_name') {
+        result[key] = record[key];
+      }
+    }
+    return result;
+  });
 }
 
 /**
@@ -305,37 +284,23 @@ function runAgentMap(task) {
   // Get data from selection
   var records = selectionToRecords();
 
-  // Create session
-  var session = createSession('Sheets Agent - ' + new Date().toISOString());
+  // Submit agent-map operation directly with inline data
+  // Using 'low' effort level for quick results in spreadsheet context
+  var response = submitAgentMap(records, task, null, 'low');
+  var taskId = response.task_id;
+  var sessionId = response.session_id;
 
-  // Create input artifact first
-  var inputArtifactId = createInputArtifact(records, session.id);
-
-  // Build payload
-  var payload = {
-    task_type: 'agent',
-    processing_mode: 'map',
-    query: {
-      task: task,
-      effort_level: 'low'
-    },
-    input_artifacts: [inputArtifactId],
-    context_artifacts: [],
-    join_with_input: true
-  };
-
-  // Run task
-  var result = runTaskWithPolling(payload, session.id);
+  // Poll for completion
+  var result = pollTaskUntilComplete(taskId, sessionId);
 
   if (result.status === 'completed') {
     // Fetch results and write to sheet
-    var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = extractArtifactData(artifacts);
+    var taskResult = getTaskResult(taskId);
+    var resultRecords = extractResultData(taskResult);
     writeResultsToSheet(resultRecords, 'Agent Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
   }
 
-  result.sessionId = session.id;
   return result;
 }
 
@@ -349,46 +314,22 @@ function runAgentMap(task) {
  * @return {Object} Operation result.
  */
 function runMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight) {
-  // Create session
-  var session = createSession('Sheets Merge - ' + new Date().toISOString());
+  // Submit merge operation directly with inline data
+  var response = submitMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight);
+  var taskId = response.task_id;
+  var sessionId = response.session_id;
 
-  // Create both input artifacts
-  var leftArtifactId = createInputArtifact(leftRecords, session.id);
-  var rightArtifactId = createInputArtifact(rightRecords, session.id);
-
-  // Build payload
-  var query = {
-    task: task
-  };
-  if (mergeOnLeft) {
-    query.merge_on_left = mergeOnLeft;
-  }
-  if (mergeOnRight) {
-    query.merge_on_right = mergeOnRight;
-  }
-
-  var payload = {
-    task_type: 'deep_merge',
-    processing_mode: 'map',
-    query: query,
-    input_artifacts: [leftArtifactId],
-    context_artifacts: [rightArtifactId],
-    twin_artifact_id: rightArtifactId,
-    join_with_input: true
-  };
-
-  // Run task
-  var result = runTaskWithPolling(payload, session.id);
+  // Poll for completion
+  var result = pollTaskUntilComplete(taskId, sessionId);
 
   if (result.status === 'completed') {
     // Fetch results and write to sheet
-    var artifacts = getArtifacts([result.artifactId]);
-    var resultRecords = extractArtifactData(artifacts);
+    var taskResult = getTaskResult(taskId);
+    var resultRecords = extractResultData(taskResult);
     writeResultsToSheet(resultRecords, 'Merge Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: session.id };
+    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
   }
 
-  result.sessionId = session.id;
   return result;
 }
 
@@ -405,8 +346,8 @@ function retrieveTaskResults(taskId, sheetName) {
     throw new Error('Task is not completed. Status: ' + status.status);
   }
 
-  var artifacts = getArtifacts([status.artifact_id]);
-  var records = extractArtifactData(artifacts);
+  var taskResult = getTaskResult(taskId);
+  var records = extractResultData(taskResult);
 
   if (records.length === 0) {
     throw new Error('Task completed but no results found.');

@@ -71,21 +71,8 @@ function makeApiRequest(method, path, body) {
  * @return {Object} Session object with id.
  */
 function createSession(name) {
-  var result = makeApiRequest('POST', '/sessions/create', { name: name });
+  var result = makeApiRequest('POST', '/sessions', { name: name });
   return { id: result.session_id };
-}
-
-/**
- * Submit a task to the Engine.
- * @param {Object} payload - Task payload.
- * @param {string} sessionId - Session ID to associate task with.
- * @return {Object} Task object with task_id.
- */
-function submitTask(payload, sessionId) {
-  return makeApiRequest('POST', '/tasks', {
-    payload: payload,
-    session_id: sessionId
-  });
 }
 
 /**
@@ -98,13 +85,129 @@ function getTaskStatus(taskId) {
 }
 
 /**
- * Get artifacts by IDs.
- * @param {string[]} artifactIds - Array of artifact IDs.
- * @return {Object[]} Array of artifact objects.
+ * Get task results directly (for completed tasks).
+ * @param {string} taskId - Task ID.
+ * @return {Object} Task result with data array.
  */
-function getArtifacts(artifactIds) {
-  var params = artifactIds.map(function(id) {
-    return 'artifact_ids=' + encodeURIComponent(id);
-  }).join('&');
-  return makeApiRequest('GET', '/artifacts?' + params);
+function getTaskResult(taskId) {
+  return makeApiRequest('GET', '/tasks/' + taskId + '/result');
+}
+
+/**
+ * Submit a screen operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} task - Screening task description.
+ * @param {Object} [responseSchema] - Optional JSON Schema for response.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+function submitScreen(data, task, responseSchema, sessionId) {
+  var body = {
+    input: data,
+    task: task
+  };
+  if (responseSchema) {
+    body.response_schema = responseSchema;
+  }
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/screen', body);
+}
+
+/**
+ * Submit a rank operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} task - Ranking task description.
+ * @param {string} sortBy - Field name to sort by.
+ * @param {boolean} ascending - Sort order (true = ascending).
+ * @param {Object} [responseSchema] - Optional JSON Schema for response.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+function submitRank(data, task, sortBy, ascending, responseSchema, sessionId) {
+  var body = {
+    input: data,
+    task: task,
+    sort_by: sortBy,
+    ascending: ascending
+  };
+  if (responseSchema) {
+    body.response_schema = responseSchema;
+  }
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/rank', body);
+}
+
+/**
+ * Submit a dedupe operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} equivalenceRelation - Description of what makes rows duplicates.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+function submitDedupe(data, equivalenceRelation, sessionId) {
+  var body = {
+    input: data,
+    equivalence_relation: equivalenceRelation
+  };
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/dedupe', body);
+}
+
+/**
+ * Submit a merge operation.
+ * @param {Object[]} leftData - Left table data records.
+ * @param {Object[]} rightData - Right table data records.
+ * @param {string} task - Merge task description.
+ * @param {string} [leftKey] - Optional column name to match on from left table.
+ * @param {string} [rightKey] - Optional column name to match on from right table.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+function submitMerge(leftData, rightData, task, leftKey, rightKey, sessionId) {
+  var body = {
+    left_input: leftData,
+    right_input: rightData,
+    task: task
+  };
+  if (leftKey) {
+    body.left_key = leftKey;
+  }
+  if (rightKey) {
+    body.right_key = rightKey;
+  }
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/merge', body);
+}
+
+/**
+ * Submit an agent-map operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} task - Agent task description.
+ * @param {Object} [responseSchema] - Optional JSON Schema for response.
+ * @param {string} [effortLevel] - Effort level: 'low', 'medium', or 'high'.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+function submitAgentMap(data, task, responseSchema, effortLevel, sessionId) {
+  var body = {
+    input: data,
+    task: task,
+    effort_level: effortLevel || 'low',
+    join_with_input: true
+  };
+  if (responseSchema) {
+    body.response_schema = responseSchema;
+  }
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/agent-map', body);
 }

@@ -54,10 +54,10 @@ function clearLastTaskId() {
 
 /**
  * Get the Engine API base URL.
- * @return {string} The base URL.
+ * @return {string} The base URL for the public API v0.
  */
 function getApiBaseUrl() {
-  return 'https://engine.futuresearch.ai';
+  return 'https://engine.futuresearch.ai/api/v0';
 }
 
 /**
