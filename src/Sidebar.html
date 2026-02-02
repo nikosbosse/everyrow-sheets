@@ -29,9 +29,9 @@
     <!-- Main Interface (shown when configured) -->
     <div id="main-section" class="hidden">
 
-      <!-- Header with refresh button -->
+      <!-- Header with help button -->
       <div class="main-header">
-        <button class="icon-btn" onclick="refreshSheets()" title="Refresh sheet list">↻</button>
+        <button class="icon-btn" onclick="showHelpModal()" title="Instructions">?</button>
       </div>
 
       <!-- Step 1: Choose Operation -->
@@ -66,6 +66,7 @@
         <div class="step-header">
           <span class="step-number">2</span>
           <span class="step-title" id="config-title">Configure</span>
+          <button class="icon-btn small" onclick="refreshSheets()" title="Refresh data">↻</button>
         </div>
         <div class="step-content">
           <!-- Rank Config -->
@@ -193,6 +194,71 @@
       <div class="button-group">
         <button class="primary" onclick="updateApiKey()">Save</button>
         <button class="secondary" onclick="hideApiKeyDialog()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal-overlay hidden" onclick="hideHelpModal(event)">
+      <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 id="help-modal-title">How to use everyrow</h3>
+          <button class="modal-close" onclick="hideHelpModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- General help (no operation selected) -->
+          <div id="help-general">
+            <p><strong>Rank</strong> — Score and sort rows based on criteria you describe. Great for prioritizing leads, ranking candidates, or sorting by relevance.</p>
+            <p><strong>Screen</strong> — Filter rows that match specific conditions. Use natural language to describe which rows to keep.</p>
+            <p><strong>Dedupe</strong> — Find and remove duplicate rows, even when names are spelled differently or data varies slightly.</p>
+            <p><strong>Merge</strong> — Combine two tables by matching rows intelligently, even without exact key matches.</p>
+            <p><strong>Agent</strong> — Run AI-powered web research on each row. Find LinkedIn profiles, company info, or any data available online.</p>
+          </div>
+          <!-- Rank help -->
+          <div id="help-rank" class="hidden">
+            <p>Rank assigns a score to each row based on criteria you describe, then sorts the results.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Rank companies by growth potential based on their description and funding"</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Score candidates by relevance to a senior engineering role"</p>
+            <p><strong>Options:</strong></p>
+            <p>• <em>Score column name</em> — The name of the new column containing scores</p>
+            <p>• <em>Sort ascending</em> — Check to put lowest scores first</p>
+          </div>
+          <!-- Screen help -->
+          <div id="help-screen" class="hidden">
+            <p>Screen filters your data, keeping only rows that match your criteria. Each row is evaluated and marked as passing or not.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Companies with more than 100 employees in the technology sector"</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Candidates with at least 5 years of Python experience"</p>
+            <p>Results include a <em>passes_screen</em> column (true/false) and a <em>reason</em> explaining the decision.</p>
+          </div>
+          <!-- Dedupe help -->
+          <div id="help-dedupe" class="hidden">
+            <p>Dedupe finds and groups duplicate rows, even when data isn't exactly the same. It uses AI to understand when two rows represent the same entity.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Same company, possibly with different name spellings or abbreviations"</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Same person based on name and email, ignoring case differences"</p>
+            <p>Results include <em>selected</em> (the canonical row), <em>equivalence_class_id</em>, and <em>equivalence_class_name</em> columns.</p>
+          </div>
+          <!-- Agent help -->
+          <div id="help-agent" class="hidden">
+            <p>Agent performs AI-powered web research for each row. It can browse the web, find information, and add new columns with the results.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Find this company's LinkedIn page, headquarters location, and founding year"</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Look up the CEO's name and their Twitter handle"</p>
+            <p>Agent operations take longer as they involve web searches. Results are added as new columns.</p>
+          </div>
+          <!-- Merge help -->
+          <div id="help-merge" class="hidden">
+            <p>Merge combines two tables by intelligently matching rows, even without exact key matches. It's like a fuzzy VLOOKUP.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Match companies from both tables by name, even if spellings differ"</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Join on company name, accounting for 'Inc', 'LLC' variations"</p>
+            <p><strong>Options:</strong></p>
+            <p>• <em>Match column (optional)</em> — Specify which columns to match on, or leave blank for auto-detection</p>
+          </div>
+          <hr style="margin: 16px 0; border: none; border-top: 1px solid #e0e0e0;">
+          <p style="font-size: 12px; color: #5f6368;">Select a sheet from the dropdown, describe your task, and click Run. Results appear in a new sheet tab.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -398,6 +464,42 @@
 
     function hideDialogError() {
       document.getElementById('dialog-error').classList.add('hidden');
+    }
+
+    function showHelpModal() {
+      // Hide all help sections
+      document.getElementById('help-general').classList.add('hidden');
+      document.getElementById('help-rank').classList.add('hidden');
+      document.getElementById('help-screen').classList.add('hidden');
+      document.getElementById('help-dedupe').classList.add('hidden');
+      document.getElementById('help-agent').classList.add('hidden');
+      document.getElementById('help-merge').classList.add('hidden');
+
+      // Show appropriate section based on selected operation
+      var op = state.selectedOperation;
+      var titles = {
+        rank: 'How to use Rank',
+        screen: 'How to use Screen',
+        dedupe: 'How to use Dedupe',
+        agent: 'How to use Agent',
+        merge: 'How to use Merge'
+      };
+
+      if (op && document.getElementById('help-' + op)) {
+        document.getElementById('help-' + op).classList.remove('hidden');
+        document.getElementById('help-modal-title').textContent = titles[op] || 'Instructions';
+      } else {
+        document.getElementById('help-general').classList.remove('hidden');
+        document.getElementById('help-modal-title').textContent = 'How to use everyrow';
+      }
+
+      document.getElementById('help-modal').classList.remove('hidden');
+    }
+
+    function hideHelpModal(event) {
+      if (!event || event.target === event.currentTarget) {
+        document.getElementById('help-modal').classList.add('hidden');
+      }
     }
 
     function updateApiKey() {
