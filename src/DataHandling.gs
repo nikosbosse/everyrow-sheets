@@ -28,6 +28,155 @@ function columnToLetter_(index) {
 }
 
 /**
+ * Convert an entire sheet to an array of record objects.
+ * First row is treated as headers.
+ * Automatically removes empty rows and columns.
+ * @param {string} sheetName - Name of the sheet to read.
+ * @return {Object[]} Array of objects where keys are header names.
+ * @throws {Error} If sheet not found or no data.
+ */
+function sheetToRecords(sheetName) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet) {
+    throw new Error('Sheet "' + sheetName + '" not found.');
+  }
+
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+
+  if (values.length < 2) {
+    throw new Error('Sheet "' + sheetName + '" must have at least 2 rows (1 header row + 1 data row).');
+  }
+
+  // Get raw headers
+  var rawHeaders = values[0].map(function(h) { return String(h).trim(); });
+
+  // Find which columns have at least one non-empty data value
+  var validColumnIndices = [];
+  for (var j = 0; j < rawHeaders.length; j++) {
+    for (var i = 1; i < values.length; i++) {
+      if (!isEmpty_(values[i][j])) {
+        validColumnIndices.push(j);
+        break;
+      }
+    }
+  }
+
+  if (validColumnIndices.length === 0) {
+    throw new Error('No columns with data found in sheet "' + sheetName + '".');
+  }
+
+  // Build headers, generating placeholders for empty ones
+  var headers = validColumnIndices.map(function(j) {
+    if (rawHeaders[j] !== '') {
+      return rawHeaders[j];
+    }
+    return 'Column ' + columnToLetter_(j);
+  });
+
+  // Build records, skipping entirely empty rows
+  var records = [];
+  for (var i = 1; i < values.length; i++) {
+    var row = values[i];
+
+    // Check if row is entirely empty (across valid columns)
+    var rowHasData = false;
+    for (var k = 0; k < validColumnIndices.length; k++) {
+      if (!isEmpty_(row[validColumnIndices[k]])) {
+        rowHasData = true;
+        break;
+      }
+    }
+    if (!rowHasData) continue;
+
+    // Build record from valid columns
+    var record = {};
+    for (var k = 0; k < validColumnIndices.length; k++) {
+      record[headers[k]] = row[validColumnIndices[k]];
+    }
+    records.push(record);
+  }
+
+  if (records.length === 0) {
+    throw new Error('No data rows found in sheet "' + sheetName + '".');
+  }
+
+  return records;
+}
+
+/**
+ * Get info about a specific sheet for display.
+ * @param {string} sheetName - Name of the sheet.
+ * @return {Object} Sheet info with rowCount, columnCount, headers.
+ */
+function getSheetInfo(sheetName) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName(sheetName);
+
+  if (!sheet) {
+    return {
+      hasData: false,
+      rowCount: 0,
+      columnCount: 0,
+      headers: []
+    };
+  }
+
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+
+  if (values.length < 2) {
+    return {
+      hasData: false,
+      rowCount: 0,
+      columnCount: 0,
+      headers: []
+    };
+  }
+
+  var rawHeaders = values[0].map(function(h) { return String(h).trim(); });
+
+  // Find columns that have at least one data value
+  var validColumnIndices = [];
+  for (var j = 0; j < rawHeaders.length; j++) {
+    for (var i = 1; i < values.length; i++) {
+      if (!isEmpty_(values[i][j])) {
+        validColumnIndices.push(j);
+        break;
+      }
+    }
+  }
+
+  // Build headers
+  var headers = validColumnIndices.map(function(j) {
+    if (rawHeaders[j] !== '') {
+      return rawHeaders[j];
+    }
+    return 'Column ' + columnToLetter_(j);
+  });
+
+  // Count non-empty data rows
+  var dataRowCount = 0;
+  for (var i = 1; i < values.length; i++) {
+    for (var k = 0; k < validColumnIndices.length; k++) {
+      if (!isEmpty_(values[i][validColumnIndices[k]])) {
+        dataRowCount++;
+        break;
+      }
+    }
+  }
+
+  return {
+    hasData: dataRowCount > 0,
+    rowCount: dataRowCount,
+    columnCount: headers.length,
+    headers: headers
+  };
+}
+
+/**
  * Convert the current selection to an array of record objects.
  * First row is treated as headers.
  * Automatically removes empty rows and columns.

@@ -65,3 +65,20 @@ function saveApiKeyFromSidebar(apiKey) {
   saveApiKey(apiKey);
   return { success: true };
 }
+
+/**
+ * Get list of all available sheets in the workbook.
+ * @return {Object} Object with sheets array and currentSheet name.
+ */
+function getAvailableSheets() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = spreadsheet.getSheets();
+  var activeSheet = spreadsheet.getActiveSheet();
+
+  return {
+    sheets: sheets.map(function(sheet) {
+      return { name: sheet.getName() };
+    }),
+    currentSheet: activeSheet.getName()
+  };
+}

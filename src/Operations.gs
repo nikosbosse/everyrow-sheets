@@ -99,14 +99,15 @@ function checkPreviousTask(taskId) {
  * @param {string} task - The ranking task description.
  * @param {string} fieldName - Field name for the score (default: 'score').
  * @param {boolean} ascending - Sort ascending (default: false).
+ * @param {string} sheetName - Name of the sheet to read data from.
  * @return {Object} Operation result.
  */
-function runRank(task, fieldName, ascending) {
+function runRank(task, fieldName, ascending, sheetName) {
   fieldName = fieldName || 'score';
   ascending = ascending === true;
 
-  // Get data from selection
-  var records = selectionToRecords();
+  // Get data from sheet
+  var records = sheetToRecords(sheetName);
 
   // Build JSON Schema for the response
   var responseSchema = {
@@ -138,11 +139,12 @@ function runRank(task, fieldName, ascending) {
 /**
  * Run a Deep Screen operation.
  * @param {string} task - The screening task/criteria description.
+ * @param {string} sheetName - Name of the sheet to read data from.
  * @return {Object} Operation result.
  */
-function runScreen(task) {
-  // Get data from selection
-  var records = selectionToRecords();
+function runScreen(task, sheetName) {
+  // Get data from sheet
+  var records = sheetToRecords(sheetName);
 
   // Screen requires a response_schema with at least one boolean field
   var responseSchema = {
@@ -175,11 +177,12 @@ function runScreen(task) {
 /**
  * Run a Dedupe operation.
  * @param {string} equivalenceRelation - Description of what makes two records duplicates.
+ * @param {string} sheetName - Name of the sheet to read data from.
  * @return {Object} Operation result.
  */
-function runDedupe(equivalenceRelation) {
-  // Get data from selection
-  var records = selectionToRecords();
+function runDedupe(equivalenceRelation, sheetName) {
+  // Get data from sheet
+  var records = sheetToRecords(sheetName);
 
   // Submit dedupe operation directly with inline data
   var response = submitDedupe(records, equivalenceRelation);
@@ -278,11 +281,12 @@ function extractDedupeResults(taskResult) {
 /**
  * Run an Agent Map operation.
  * @param {string} task - The task description for the agent.
+ * @param {string} sheetName - Name of the sheet to read data from.
  * @return {Object} Operation result.
  */
-function runAgentMap(task) {
-  // Get data from selection
-  var records = selectionToRecords();
+function runAgentMap(task, sheetName) {
+  // Get data from sheet
+  var records = sheetToRecords(sheetName);
 
   // Submit agent-map operation directly with inline data
   // Using 'low' effort level for quick results in spreadsheet context
@@ -306,14 +310,18 @@ function runAgentMap(task) {
 
 /**
  * Run a Merge operation combining two tables.
- * @param {Object[]} leftRecords - Records from the left/primary table.
- * @param {Object[]} rightRecords - Records from the right/secondary table.
+ * @param {string} leftSheetName - Name of the sheet for the left/primary table.
+ * @param {string} rightSheetName - Name of the sheet for the right/secondary table.
  * @param {string} task - Description of how to merge the tables.
  * @param {string} [mergeOnLeft] - Optional column name to match on from left table.
  * @param {string} [mergeOnRight] - Optional column name to match on from right table.
  * @return {Object} Operation result.
  */
-function runMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight) {
+function runMerge(leftSheetName, rightSheetName, task, mergeOnLeft, mergeOnRight) {
+  // Get data from sheets
+  var leftRecords = sheetToRecords(leftSheetName);
+  var rightRecords = sheetToRecords(rightSheetName);
+
   // Submit merge operation directly with inline data
   var response = submitMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight);
   var taskId = response.task_id;
