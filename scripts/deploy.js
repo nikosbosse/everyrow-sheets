@@ -149,7 +149,7 @@ Workflow for Updates:
   3. Run: node scripts/deploy.js version "v1.x.x - Changes"
   4. Update Marketplace SDK version in GCP Console (for published add-ons)
 
-For full documentation, see PUBLISHING.md
+For setup and usage, see README.md
 `);
 }
 

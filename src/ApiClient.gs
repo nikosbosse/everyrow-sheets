@@ -1,5 +1,5 @@
 /**
- * HTTP client for Cohort Engine API.
+ * HTTP client for everyrow API.
  * Handles authentication and request formatting.
  */
 

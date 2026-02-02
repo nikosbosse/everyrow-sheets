@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Test script to verify the Cohort Engine public API v0 integration works.
+ * Test script to verify the everyrow API integration works.
  * Run with: node scripts/test-api.js <api-key>
  */
 
 const API_BASE_URL = 'https://engine.futuresearch.ai/api/v0';
 
-async function makeApiRequest(method, path, body, apiKey) {
+async function makeApiRequest(method, path, body, apiKey, retries = 3) {
   const url = API_BASE_URL + path;
 
   const options = {
@@ -22,10 +22,16 @@ async function makeApiRequest(method, path, body, apiKey) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
-  const responseText = await response.text();
+  let lastError;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const response = await fetch(url, options);
+    const responseText = await response.text();
 
-  if (!response.ok) {
+    if (response.ok) {
+      return JSON.parse(responseText);
+    }
+
+    // Parse error
     let errorMessage = `API error ${response.status}`;
     try {
       const errorBody = JSON.parse(responseText);
@@ -37,10 +43,21 @@ async function makeApiRequest(method, path, body, apiKey) {
     } catch (e) {
       errorMessage += ': ' + responseText.substring(0, 200);
     }
-    throw new Error(errorMessage);
+
+    lastError = new Error(errorMessage);
+
+    // Retry on 401 (intermittent auth issues) or 5xx (server errors)
+    if ((response.status === 401 || response.status >= 500) && attempt < retries) {
+      const delay = Math.pow(2, attempt) * 500; // 1s, 2s, 4s
+      console.log(`  ⚠ Got ${response.status}, retrying in ${delay}ms (attempt ${attempt}/${retries})...`);
+      await sleep(delay);
+      continue;
+    }
+
+    throw lastError;
   }
 
-  return JSON.parse(responseText);
+  throw lastError;
 }
 
 async function sleep(ms) {
@@ -135,7 +152,7 @@ async function pollTaskStatus(taskId, apiKey, maxWaitMs = 120000) {
 }
 
 async function runTests(apiKey) {
-  console.log('\n🧪 Testing Cohort Engine Public API v0 Integration\n');
+  console.log('\n🧪 Testing everyrow API Integration\n');
 
   const testData = [
     { name: 'Apple', industry: 'Technology', employees: 150000 },

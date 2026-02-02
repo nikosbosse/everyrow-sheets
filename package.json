@@ -1,7 +1,7 @@
 {
   "name": "everyrow-sheets",
   "version": "0.1.0",
-  "description": "Google Sheets add-on for everyrow operations (rank, dedupe, screen)",
+  "description": "Google Sheets add-on for everyrow operations (rank, screen, dedupe, merge, agent)",
   "private": true,
   "scripts": {
     "clasp:init": "node scripts/setup.js",
