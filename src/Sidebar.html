@@ -126,6 +126,22 @@
             </div>
             <label for="agent-task">What should the agent do for each row?</label>
             <textarea id="agent-task" placeholder="e.g., Research this company and find their LinkedIn page, headquarters location, and founding year"></textarea>
+
+            <!-- Collapsible output columns section -->
+            <div class="collapsible-section">
+              <div class="collapsible-header" onclick="toggleOutputColumns()">
+                <span class="collapsible-icon" id="output-columns-icon">▶</span>
+                <span>Define output columns</span>
+                <span class="collapsible-hint">(optional)</span>
+              </div>
+              <div id="output-columns-content" class="collapsible-content hidden">
+                <div id="output-columns-list">
+                  <!-- Column rows will be added here dynamically -->
+                </div>
+                <button type="button" class="add-column-btn" onclick="addOutputColumn()">+ Add column</button>
+              </div>
+            </div>
+
             <button class="primary" onclick="runAgentOperation()">Run Agent</button>
           </div>
 
@@ -245,7 +261,8 @@
             <p><strong>Example prompts:</strong></p>
             <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Find this company's LinkedIn page, headquarters location, and founding year"</p>
             <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Look up the CEO's name and their Twitter handle"</p>
-            <p>Agent operations take longer as they involve web searches. Results are added as new columns.</p>
+            <p><strong>Define output columns (optional):</strong></p>
+            <p>Click to specify exactly which columns to return. For each column, provide a name and type (Text, Number, or Yes/No). If left empty, the agent will determine the output structure automatically.</p>
           </div>
           <!-- Merge help -->
           <div id="help-merge" class="hidden">
@@ -502,6 +519,88 @@
       }
     }
 
+    // Output columns management
+    var outputColumnCounter = 0;
+
+    function toggleOutputColumns() {
+      var content = document.getElementById('output-columns-content');
+      var icon = document.getElementById('output-columns-icon');
+      var isHidden = content.classList.contains('hidden');
+
+      content.classList.toggle('hidden');
+      icon.textContent = isHidden ? '▼' : '▶';
+
+      // Add first column if expanding and empty
+      if (isHidden && document.getElementById('output-columns-list').children.length === 0) {
+        addOutputColumn();
+      }
+    }
+
+    function addOutputColumn() {
+      var list = document.getElementById('output-columns-list');
+      var id = 'col-' + (++outputColumnCounter);
+
+      var row = document.createElement('div');
+      row.className = 'output-column-row';
+      row.id = id;
+      row.innerHTML =
+        '<input type="text" class="column-name-input" placeholder="Column name">' +
+        '<select class="column-type-select">' +
+          '<option value="string">Text</option>' +
+          '<option value="number">Number</option>' +
+          '<option value="boolean">Yes/No</option>' +
+        '</select>' +
+        '<button type="button" class="remove-column-btn" onclick="removeOutputColumn(\'' + id + '\')">&minus;</button>';
+
+      list.appendChild(row);
+    }
+
+    function removeOutputColumn(id) {
+      var row = document.getElementById(id);
+      if (row) {
+        row.remove();
+      }
+    }
+
+    function getOutputSchema() {
+      var rows = document.querySelectorAll('#output-columns-list .output-column-row');
+      if (rows.length === 0) {
+        return null;
+      }
+
+      var properties = {};
+      var required = [];
+      var hasValidColumn = false;
+
+      rows.forEach(function(row) {
+        var name = row.querySelector('.column-name-input').value.trim();
+        var type = row.querySelector('.column-type-select').value;
+
+        if (name) {
+          hasValidColumn = true;
+          properties[name] = { type: type };
+          required.push(name);
+        }
+      });
+
+      if (!hasValidColumn) {
+        return null;
+      }
+
+      return {
+        type: 'object',
+        properties: properties,
+        required: required
+      };
+    }
+
+    function resetOutputColumns() {
+      document.getElementById('output-columns-list').innerHTML = '';
+      document.getElementById('output-columns-content').classList.add('hidden');
+      document.getElementById('output-columns-icon').textContent = '▶';
+      outputColumnCounter = 0;
+    }
+
     function updateApiKey() {
       hideDialogError();
       var apiKey = document.getElementById('new-api-key').value.trim();
@@ -651,13 +750,15 @@
         return;
       }
 
+      var responseSchema = getOutputSchema();
+
       clearStatus();
       showLoading('Running agent on each row...');
 
       google.script.run
         .withSuccessHandler(handleOperationResult)
         .withFailureHandler(showError)
-        .runAgentMap(task, sheetName);
+        .runAgentMap(task, sheetName, responseSchema);
     }
 
     function runMergeOperation() {
