@@ -1,0 +1,157 @@
+<svg width="1280" height="800" viewBox="0 0 1280 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Google Sheets mock background -->
+  <rect width="1280" height="800" fill="#FFFFFF"/>
+
+  <!-- Top toolbar area -->
+  <rect width="1280" height="56" fill="#F8F9FA"/>
+  <rect y="56" width="1280" height="1" fill="#E0E0E0"/>
+
+  <!-- Google Sheets logo area -->
+  <rect x="16" y="12" width="32" height="32" rx="4" fill="#0F9D58"/>
+  <text x="56" y="35" font-family="system-ui, sans-serif" font-size="18" fill="#202124">Company Rankings</text>
+
+  <!-- Menu bar -->
+  <rect y="57" width="1280" height="28" fill="#FFFFFF"/>
+  <rect y="85" width="1280" height="1" fill="#E0E0E0"/>
+  <text x="16" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">File</text>
+  <text x="56" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Edit</text>
+  <text x="96" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">View</text>
+  <text x="140" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Insert</text>
+  <text x="192" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Format</text>
+  <text x="254" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Data</text>
+  <text x="300" y="76" font-family="system-ui, sans-serif" font-size="13" fill="#3B82F6" font-weight="600">everyrow</text>
+
+  <!-- Formula bar -->
+  <rect y="86" width="1280" height="32" fill="#FFFFFF"/>
+  <rect y="118" width="1280" height="1" fill="#E0E0E0"/>
+
+  <!-- Spreadsheet area -->
+  <rect y="119" width="960" height="681" fill="#FFFFFF"/>
+
+  <!-- Column headers -->
+  <rect y="119" width="960" height="24" fill="#F8F9FA"/>
+  <rect y="143" width="960" height="1" fill="#E0E0E0"/>
+  <text x="50" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">A</text>
+  <text x="200" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">B</text>
+  <text x="350" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">C</text>
+  <text x="500" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">D</text>
+  <text x="650" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">E</text>
+  <text x="800" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">F</text>
+  <text x="900" y="136" font-family="system-ui, sans-serif" font-size="12" fill="#5F6368" text-anchor="middle">G</text>
+
+  <!-- Row numbers -->
+  <rect y="143" width="30" height="657" fill="#F8F9FA"/>
+  <text x="15" y="168" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">1</text>
+  <text x="15" y="196" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">2</text>
+  <text x="15" y="224" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">3</text>
+  <text x="15" y="252" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">4</text>
+  <text x="15" y="280" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">5</text>
+  <text x="15" y="308" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">6</text>
+  <text x="15" y="336" font-family="system-ui, sans-serif" font-size="11" fill="#5F6368" text-anchor="middle">7</text>
+
+  <!-- Header row -->
+  <rect x="30" y="144" width="930" height="28" fill="#E8F0FE"/>
+  <text x="50" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#202124">Company</text>
+  <text x="200" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#202124">Industry</text>
+  <text x="350" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#202124">Revenue</text>
+  <text x="500" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#202124">Employees</text>
+  <text x="650" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#202124">Founded</text>
+  <text x="800" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#3B82F6">Score</text>
+  <text x="900" y="164" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#3B82F6">Rank</text>
+
+  <!-- Data rows -->
+  <text x="50" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#202124">TechCorp</text>
+  <text x="200" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">SaaS</text>
+  <text x="350" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">$45M</text>
+  <text x="500" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">280</text>
+  <text x="650" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">2018</text>
+  <text x="800" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#10B981" font-weight="600">92</text>
+  <text x="900" y="192" font-family="system-ui, sans-serif" font-size="13" fill="#10B981" font-weight="600">1</text>
+
+  <text x="50" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#202124">DataFlow Inc</text>
+  <text x="200" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Analytics</text>
+  <text x="350" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">$32M</text>
+  <text x="500" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">195</text>
+  <text x="650" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">2019</text>
+  <text x="800" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#3B82F6" font-weight="600">87</text>
+  <text x="900" y="220" font-family="system-ui, sans-serif" font-size="13" fill="#3B82F6" font-weight="600">2</text>
+
+  <text x="50" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#202124">CloudBase</text>
+  <text x="200" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Infrastructure</text>
+  <text x="350" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">$78M</text>
+  <text x="500" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">420</text>
+  <text x="650" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">2016</text>
+  <text x="800" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#3B82F6" font-weight="600">84</text>
+  <text x="900" y="248" font-family="system-ui, sans-serif" font-size="13" fill="#3B82F6" font-weight="600">3</text>
+
+  <text x="50" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#202124">AI Solutions</text>
+  <text x="200" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">AI/ML</text>
+  <text x="350" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">$22M</text>
+  <text x="500" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">85</text>
+  <text x="650" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">2021</text>
+  <text x="800" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#F59E0B" font-weight="600">76</text>
+  <text x="900" y="276" font-family="system-ui, sans-serif" font-size="13" fill="#F59E0B" font-weight="600">4</text>
+
+  <text x="50" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#202124">SecureNet</text>
+  <text x="200" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">Security</text>
+  <text x="350" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">$18M</text>
+  <text x="500" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">120</text>
+  <text x="650" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#5F6368">2020</text>
+  <text x="800" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#F59E0B" font-weight="600">71</text>
+  <text x="900" y="304" font-family="system-ui, sans-serif" font-size="13" fill="#F59E0B" font-weight="600">5</text>
+
+  <!-- Grid lines -->
+  <line x1="30" y1="172" x2="960" y2="172" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="30" y1="200" x2="960" y2="200" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="30" y1="228" x2="960" y2="228" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="30" y1="256" x2="960" y2="256" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="30" y1="284" x2="960" y2="284" stroke="#E0E0E0" stroke-width="1"/>
+  <line x1="30" y1="312" x2="960" y2="312" stroke="#E0E0E0" stroke-width="1"/>
+
+  <!-- everyrow Sidebar -->
+  <rect x="960" y="56" width="320" height="744" fill="#18181B"/>
+  <rect x="960" y="56" width="1" height="744" fill="#3F3F46"/>
+
+  <!-- Sidebar header -->
+  <rect x="960" y="56" width="320" height="56" fill="#27272A"/>
+  <text x="980" y="92" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#FAFAFA">everyrow</text>
+
+  <!-- Operation tabs -->
+  <g transform="translate(970, 128)">
+    <rect x="0" y="0" width="56" height="32" rx="6" fill="#3B82F6"/>
+    <text x="28" y="21" font-family="system-ui, sans-serif" font-size="12" fill="#FFFFFF" text-anchor="middle">Rank</text>
+  </g>
+  <g transform="translate(1034, 128)">
+    <rect x="0" y="0" width="56" height="32" rx="6" fill="#3F3F46"/>
+    <text x="28" y="21" font-family="system-ui, sans-serif" font-size="12" fill="#A1A1AA" text-anchor="middle">Screen</text>
+  </g>
+  <g transform="translate(1098, 128)">
+    <rect x="0" y="0" width="64" height="32" rx="6" fill="#3F3F46"/>
+    <text x="32" y="21" font-family="system-ui, sans-serif" font-size="12" fill="#A1A1AA" text-anchor="middle">Dedupe</text>
+  </g>
+  <g transform="translate(1170, 128)">
+    <rect x="0" y="0" width="56" height="32" rx="6" fill="#3F3F46"/>
+    <text x="28" y="21" font-family="system-ui, sans-serif" font-size="12" fill="#A1A1AA" text-anchor="middle">Merge</text>
+  </g>
+
+  <!-- Criteria input -->
+  <text x="980" y="196" font-family="system-ui, sans-serif" font-size="13" fill="#A1A1AA">Ranking Criteria</text>
+  <rect x="970" y="206" width="300" height="80" rx="8" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text x="986" y="234" font-family="system-ui, sans-serif" font-size="13" fill="#FAFAFA">Rank companies by growth potential</text>
+  <text x="986" y="256" font-family="system-ui, sans-serif" font-size="13" fill="#FAFAFA">based on revenue growth rate,</text>
+  <text x="986" y="278" font-family="system-ui, sans-serif" font-size="13" fill="#FAFAFA">employee count, and market fit</text>
+
+  <!-- Score column name -->
+  <text x="980" y="316" font-family="system-ui, sans-serif" font-size="13" fill="#A1A1AA">Score Column Name</text>
+  <rect x="970" y="326" width="300" height="40" rx="8" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text x="986" y="352" font-family="system-ui, sans-serif" font-size="13" fill="#FAFAFA">Score</text>
+
+  <!-- Run button -->
+  <rect x="970" y="400" width="300" height="48" rx="8" fill="#3B82F6"/>
+  <text x="1120" y="430" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#FFFFFF" text-anchor="middle">Run Rank</text>
+
+  <!-- Status -->
+  <rect x="970" y="470" width="300" height="60" rx="8" fill="#10B98120"/>
+  <text x="1120" y="496" font-family="system-ui, sans-serif" font-size="13" fill="#10B981" text-anchor="middle">Completed</text>
+  <text x="1120" y="516" font-family="system-ui, sans-serif" font-size="12" fill="#6EE7B7" text-anchor="middle">5 rows ranked in 3.2s</text>
+</svg>
