@@ -1,0 +1,35 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="#18181B"/>
+
+  <!-- Grid pattern representing spreadsheet rows -->
+  <g opacity="0.3">
+    <line x1="20" y1="36" x2="108" y2="36" stroke="#71717A" stroke-width="1"/>
+    <line x1="20" y1="52" x2="108" y2="52" stroke="#71717A" stroke-width="1"/>
+    <line x1="20" y1="68" x2="108" y2="68" stroke="#71717A" stroke-width="1"/>
+    <line x1="20" y1="84" x2="108" y2="84" stroke="#71717A" stroke-width="1"/>
+    <line x1="20" y1="100" x2="108" y2="100" stroke="#71717A" stroke-width="1"/>
+  </g>
+
+  <!-- "every" highlight bar -->
+  <rect x="20" y="44" width="88" height="16" rx="3" fill="#3B82F6" opacity="0.2"/>
+
+  <!-- Row indicator dots (representing data processing) -->
+  <circle cx="30" cy="36" r="4" fill="#3B82F6"/>
+  <circle cx="30" cy="52" r="4" fill="#10B981"/>
+  <circle cx="30" cy="68" r="4" fill="#3B82F6"/>
+  <circle cx="30" cy="84" r="4" fill="#F59E0B"/>
+  <circle cx="30" cy="100" r="4" fill="#10B981"/>
+
+  <!-- Data bars representing columns -->
+  <rect x="44" y="32" width="32" height="8" rx="2" fill="#71717A"/>
+  <rect x="44" y="48" width="48" height="8" rx="2" fill="#A1A1AA"/>
+  <rect x="44" y="64" width="24" height="8" rx="2" fill="#71717A"/>
+  <rect x="44" y="80" width="40" height="8" rx="2" fill="#71717A"/>
+  <rect x="44" y="96" width="28" height="8" rx="2" fill="#A1A1AA"/>
+
+  <!-- AI sparkle indicator -->
+  <g transform="translate(88, 20)">
+    <path d="M12 0L14.5 9.5L24 12L14.5 14.5L12 24L9.5 14.5L0 12L9.5 9.5L12 0Z" fill="#F59E0B"/>
+  </g>
+</svg>
