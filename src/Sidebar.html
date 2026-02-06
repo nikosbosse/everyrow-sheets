@@ -127,6 +127,15 @@
             <label for="agent-task">What should the agent do for each row?</label>
             <textarea id="agent-task" placeholder="e.g., Research this company and find their LinkedIn page, headquarters location, and founding year"></textarea>
 
+            <div class="form-field">
+              <label for="agent-effort">Effort Level</label>
+              <select id="agent-effort">
+                <option value="low">Low — Fast, no web research</option>
+                <option value="medium" selected>Medium — Includes web research</option>
+                <option value="high">High — More thorough research</option>
+              </select>
+            </div>
+
             <!-- Collapsible output columns section -->
             <div class="collapsible-section">
               <div class="collapsible-header" onclick="toggleOutputColumns()">
@@ -142,7 +151,7 @@
               </div>
             </div>
 
-            <button class="primary" onclick="runAgentOperation()">Run Agent</button>
+            <button id="agent-run-btn" class="primary" onclick="runAgentOperation()">Run Agent</button>
           </div>
 
           <!-- Merge Config -->
@@ -261,6 +270,10 @@
             <p><strong>Example prompts:</strong></p>
             <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Find this company's LinkedIn page, headquarters location, and founding year"</p>
             <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Look up the CEO's name and their Twitter handle"</p>
+            <p><strong>Effort Level:</strong></p>
+            <p>• <em>Low</em> — Fastest, uses only existing knowledge (no web research)</p>
+            <p>• <em>Medium</em> — Includes web research with provenance notes</p>
+            <p>• <em>High</em> — Most thorough research with more iterations</p>
             <p><strong>Define output columns (optional):</strong></p>
             <p>Click to specify exactly which columns to return. For each column, provide a name and type (Text, Number, or Yes/No). If left empty, the agent will determine the output structure automatically.</p>
           </div>
@@ -737,6 +750,13 @@
         .runDedupe(relation, sheetName);
     }
 
+    function setAgentButtonEnabled(enabled) {
+      var btn = document.getElementById('agent-run-btn');
+      if (btn) {
+        btn.disabled = !enabled;
+      }
+    }
+
     function runAgentOperation() {
       var sheetName = document.getElementById('agent-sheet').value;
       if (!sheetName) {
@@ -751,14 +771,22 @@
       }
 
       var responseSchema = getOutputSchema();
+      var effortLevel = document.getElementById('agent-effort').value;
 
       clearStatus();
       showLoading('Running agent on each row...');
+      setAgentButtonEnabled(false);
 
       google.script.run
-        .withSuccessHandler(handleOperationResult)
-        .withFailureHandler(showError)
-        .runAgentMap(task, sheetName, responseSchema);
+        .withSuccessHandler(function(result) {
+          setAgentButtonEnabled(true);
+          handleOperationResult(result);
+        })
+        .withFailureHandler(function(error) {
+          setAgentButtonEnabled(true);
+          showError(error);
+        })
+        .runAgentMap(task, sheetName, responseSchema, effortLevel);
     }
 
     function runMergeOperation() {

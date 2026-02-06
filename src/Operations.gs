@@ -283,15 +283,18 @@ function extractDedupeResults(taskResult) {
  * @param {string} task - The task description for the agent.
  * @param {string} sheetName - Name of the sheet to read data from.
  * @param {Object} [responseSchema] - Optional JSON Schema for output columns.
+ * @param {string} [effortLevel] - Effort level: 'low', 'medium', or 'high'. Default: 'medium'.
  * @return {Object} Operation result.
  */
-function runAgentMap(task, sheetName, responseSchema) {
+function runAgentMap(task, sheetName, responseSchema, effortLevel) {
   // Get data from sheet
   var records = sheetToRecords(sheetName);
 
+  // Default to 'medium' effort level (includes research/provenance notes)
+  effortLevel = effortLevel || 'medium';
+
   // Submit agent-map operation directly with inline data
-  // Using 'low' effort level for quick results in spreadsheet context
-  var response = submitAgentMap(records, task, responseSchema || null, 'low');
+  var response = submitAgentMap(records, task, responseSchema || null, effortLevel);
   var taskId = response.task_id;
   var sessionId = response.session_id;
 
