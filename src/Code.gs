@@ -34,7 +34,7 @@ function onInstall(e) {
 function showSidebar() {
   var html = HtmlService.createTemplateFromFile('Sidebar')
     .evaluate()
-    .setTitle('everyrow')
+    .setTitle('Everyrow')
     .setWidth(380);
   SpreadsheetApp.getUi().showSidebar(html);
 }
