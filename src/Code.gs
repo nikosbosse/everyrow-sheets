@@ -5,13 +5,27 @@
 
 /**
  * Runs when the spreadsheet is opened.
- * Creates the everyrow menu.
+ * Creates the Everyrow menu.
+ * Handles AuthMode.NONE for unauthenticated state.
  */
-function onOpen() {
-  var ui = SpreadsheetApp.getUi();
-  ui.createMenu('everyrow')
-    .addItem('Open', 'showSidebar')
-    .addToUi();
+function onOpen(e) {
+  var menu = SpreadsheetApp.getUi().createMenu('Everyrow');
+  if (e && e.authMode === ScriptApp.AuthMode.NONE) {
+    // AuthMode.NONE: only add menu items that don't require authorization
+    menu.addItem('Open', 'showSidebar');
+  } else {
+    // AuthMode.LIMITED or FULL: safe to add items that require auth
+    menu.addItem('Open', 'showSidebar');
+  }
+  menu.addToUi();
+}
+
+/**
+ * Runs when the add-on is first installed.
+ * Delegates to onOpen to populate the menu immediately.
+ */
+function onInstall(e) {
+  onOpen(e);
 }
 
 /**
