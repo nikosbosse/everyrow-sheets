@@ -213,13 +213,6 @@ function submitAgentMap(data, task, responseSchema, effortLevel, sessionId) {
 }
 
 /**
- * Submit a forecast operation.
- * @param {Object[]} data - Input data records.
- * @param {string} task - Forecast context/instructions.
- * @param {string} [sessionId] - Optional session ID.
- * @return {Object} Operation response with task_id.
- */
-/**
  * Get the current billing balance.
  * @return {number} Current balance in dollars.
  */
@@ -228,6 +221,13 @@ function getBillingBalance() {
   return result.current_balance_dollars;
 }
 
+/**
+ * Submit a forecast operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} task - Forecast context/instructions.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
 function submitForecast(data, task, sessionId) {
   var body = {
     input: data,

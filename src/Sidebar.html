@@ -886,7 +886,7 @@
       google.script.run
         .withSuccessHandler(function(result) {
           showLoading('Processing...');
-          pollTask(result.taskId, result.sessionId, 'Dedupe Results');
+          pollTask(result.taskId, result.sessionId, 'Dedupe Results', 'dedupe');
         })
         .withFailureHandler(function(error) {
           setAllButtonsEnabled(true);

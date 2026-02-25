@@ -233,9 +233,14 @@ function retrieveTaskResults(taskId, sheetName, operationType) {
   }
 
   var taskResult = getTaskResult(taskId);
-  var records = operationType === 'screen'
-    ? extractScreenResults(taskResult)
-    : extractResultData(taskResult);
+  var records;
+  if (operationType === 'screen') {
+    records = extractScreenResults(taskResult);
+  } else if (operationType === 'dedupe') {
+    records = extractDedupeResults(taskResult);
+  } else {
+    records = extractResultData(taskResult);
+  }
 
   if (records.length === 0) {
     throw new Error('Task completed but no results found.');
