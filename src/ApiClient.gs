@@ -211,3 +211,30 @@ function submitAgentMap(data, task, responseSchema, effortLevel, sessionId) {
   }
   return makeApiRequest('POST', '/operations/agent-map', body);
 }
+
+/**
+ * Submit a forecast operation.
+ * @param {Object[]} data - Input data records.
+ * @param {string} task - Forecast context/instructions.
+ * @param {string} [sessionId] - Optional session ID.
+ * @return {Object} Operation response with task_id.
+ */
+/**
+ * Get the current billing balance.
+ * @return {number} Current balance in dollars.
+ */
+function getBillingBalance() {
+  var result = makeApiRequest('GET', '/billing');
+  return result.current_balance_dollars;
+}
+
+function submitForecast(data, task, sessionId) {
+  var body = {
+    input: data,
+    task: task
+  };
+  if (sessionId) {
+    body.session_id = sessionId;
+  }
+  return makeApiRequest('POST', '/operations/forecast', body);
+}

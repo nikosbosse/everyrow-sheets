@@ -42,6 +42,12 @@
         </div>
         <div class="step-content">
           <div class="operation-cards">
+            <div class="operation-card" data-operation="agent" onclick="selectOperation('agent')">
+              <span class="operation-name">Research</span> <span class="operation-desc">— AI agents per row</span>
+            </div>
+            <div class="operation-card" data-operation="forecast" onclick="selectOperation('forecast')">
+              <span class="operation-name">Forecast</span> <span class="operation-desc">— Predict probabilities</span>
+            </div>
             <div class="operation-card" data-operation="rank" onclick="selectOperation('rank')">
               <span class="operation-name">Rank</span> <span class="operation-desc">— Score and sort rows</span>
             </div>
@@ -53,9 +59,6 @@
             </div>
             <div class="operation-card" data-operation="merge" onclick="selectOperation('merge')">
               <span class="operation-name">Merge</span> <span class="operation-desc">— Combine two tables</span>
-            </div>
-            <div class="operation-card" data-operation="agent" onclick="selectOperation('agent')">
-              <span class="operation-name">Agent</span> <span class="operation-desc">— AI research per row</span>
             </div>
           </div>
         </div>
@@ -154,6 +157,18 @@
             <button id="agent-run-btn" class="primary" onclick="runAgentOperation()">Run Agent</button>
           </div>
 
+          <!-- Forecast Config -->
+          <div id="forecast-config" class="operation-form hidden">
+            <div class="form-field">
+              <label for="forecast-sheet">Input Sheet</label>
+              <select id="forecast-sheet" class="sheet-dropdown"></select>
+              <div id="forecast-sheet-info" class="sheet-info"></div>
+            </div>
+            <label for="forecast-task">Context or instructions for the forecast</label>
+            <textarea id="forecast-task" placeholder="e.g., Each row contains a prediction market question. Forecast the probability of each event occurring."></textarea>
+            <button class="primary" onclick="runForecastOperation()">Run Forecast</button>
+          </div>
+
           <!-- Merge Config -->
           <div id="merge-config" class="operation-form hidden">
             <div class="form-row">
@@ -195,6 +210,7 @@
           <div class="loading-text">
             <span id="status-message">Processing...</span>
             <span class="loading-hint">This may take a few minutes</span>
+            <span id="status-session-link" class="loading-hint"></span>
           </div>
         </div>
         <div id="status-success" class="success-box hidden"></div>
@@ -204,7 +220,9 @@
       <!-- Footer -->
       <div class="sidebar-footer">
         <span class="api-key-info">
-          API Key: <span id="api-key-display" class="monospace"></span>
+          <span id="balance-display"></span><a href="#" onclick="refreshBalance(); return false;" title="Refresh balance" style="text-decoration: none; font-size: 14px;">↻</a>
+          <br style="margin-bottom: 4px; display: block; content: '';">
+          <span style="display: inline-block; margin-top: 4px;">API Key: <span id="api-key-display" class="monospace"></span></span>
           <a href="#" onclick="showApiKeyDialog(); return false;">Change</a>
         </span>
       </div>
@@ -213,6 +231,7 @@
     <!-- API Key Change Dialog -->
     <div id="api-key-dialog" class="hidden">
       <h3>Change API Key</h3>
+      <p style="color: #5f6368; font-size: 13px; margin: 0 0 12px 0;">Get your API key at <a href="https://everyrow.io/api-key" target="_blank">everyrow.io/api-key</a></p>
       <label for="new-api-key">New API Key</label>
       <input type="password" id="new-api-key" placeholder="sk-cho-...">
       <div id="dialog-error" class="error-box hidden" style="margin-bottom: 12px;"></div>
@@ -232,11 +251,12 @@
         <div class="modal-body">
           <!-- General help (no operation selected) -->
           <div id="help-general">
+            <p><strong>Research</strong> — Run AI-powered web research on each row. Find LinkedIn profiles, company info, or any data available online.</p>
+            <p><strong>Forecast</strong> — Predict probabilities for questions or scenarios. Uses multiple research agents to produce a probability (0-100) with rationale.</p>
             <p><strong>Rank</strong> — Score and sort rows based on criteria you describe. Great for prioritizing leads, ranking candidates, or sorting by relevance.</p>
             <p><strong>Screen</strong> — Filter rows that match specific conditions. Use natural language to describe which rows to keep.</p>
             <p><strong>Dedupe</strong> — Find and remove duplicate rows, even when names are spelled differently or data varies slightly.</p>
             <p><strong>Merge</strong> — Combine two tables by matching rows intelligently, even without exact key matches.</p>
-            <p><strong>Agent</strong> — Run AI-powered web research on each row. Find LinkedIn profiles, company info, or any data available online.</p>
           </div>
           <!-- Rank help -->
           <div id="help-rank" class="hidden">
@@ -277,6 +297,14 @@
             <p><strong>Define output columns (optional):</strong></p>
             <p>Click to specify exactly which columns to return. For each column, provide a name and type (Text, Number, or Yes/No). If left empty, the agent will determine the output structure automatically.</p>
           </div>
+          <!-- Forecast help -->
+          <div id="help-forecast" class="hidden">
+            <p>Forecast predicts probabilities for questions or scenarios in each row. It runs multiple research agents in parallel, then synthesizes their findings into a probability estimate.</p>
+            <p><strong>Example prompts:</strong></p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Each row contains a prediction market question. Forecast the probability of each event occurring."</p>
+            <p style="background: #f8f9fa; padding: 8px; border-radius: 4px; font-style: italic;">"Estimate the likelihood of each scenario happening by end of 2026."</p>
+            <p>Results include a <em>probability</em> (0-100) and a <em>rationale</em> explaining the reasoning.</p>
+          </div>
           <!-- Merge help -->
           <div id="help-merge" class="hidden">
             <p>Merge combines two tables by intelligently matching rows, even without exact key matches. It's like a fuzzy VLOOKUP.</p>
@@ -297,6 +325,7 @@
     var state = {
       isConfigured: false,
       apiKeyMasked: null,
+      balance: null,
       lastTaskId: null,
       availableSheets: [],
       currentSheet: '',
@@ -329,7 +358,31 @@
 
       if (state.isConfigured) {
         document.getElementById('api-key-display').textContent = state.apiKeyMasked || '';
+        var balanceEl = document.getElementById('balance-display');
+        if (state.balance !== null && state.balance !== undefined) {
+          balanceEl.textContent = 'Balance: $' + Number(state.balance).toFixed(2) + ' ';
+        } else {
+          balanceEl.textContent = '';
+        }
       }
+    }
+
+    function refreshBalance() {
+      var el = document.getElementById('balance-display');
+      el.textContent = '...';
+      google.script.run
+        .withSuccessHandler(function(balance) {
+          if (balance !== null && balance !== undefined) {
+            state.balance = balance;
+            el.textContent = 'Balance: $' + Number(balance).toFixed(2) + ' ';
+          } else {
+            el.textContent = '';
+          }
+        })
+        .withFailureHandler(function() {
+          el.textContent = '';
+        })
+        .getBillingBalance();
     }
 
     function loadSheets() {
@@ -373,6 +426,7 @@
       updateSheetInfoDisplay('screen');
       updateSheetInfoDisplay('dedupe');
       updateSheetInfoDisplay('agent');
+      updateSheetInfoDisplay('forecast');
       updateSheetInfoDisplay('merge-left');
       updateSheetInfoDisplay('merge-right');
 
@@ -381,7 +435,7 @@
     }
 
     function setupSheetDropdownListeners() {
-      ['rank', 'screen', 'dedupe', 'agent'].forEach(function(op) {
+      ['rank', 'screen', 'dedupe', 'agent', 'forecast'].forEach(function(op) {
         var select = document.getElementById(op + '-sheet');
         if (select) {
           select.onchange = function() {
@@ -449,7 +503,7 @@
       document.getElementById(op + '-config').classList.remove('hidden');
 
       // Update title
-      var titles = { rank: 'Configure Rank', screen: 'Configure Screen', dedupe: 'Configure Dedupe', agent: 'Configure Agent', merge: 'Configure Merge' };
+      var titles = { rank: 'Configure Rank', screen: 'Configure Screen', dedupe: 'Configure Dedupe', agent: 'Configure Agent', forecast: 'Configure Forecast', merge: 'Configure Merge' };
       document.getElementById('config-title').textContent = titles[op];
 
       clearStatus();
@@ -503,6 +557,7 @@
       document.getElementById('help-screen').classList.add('hidden');
       document.getElementById('help-dedupe').classList.add('hidden');
       document.getElementById('help-agent').classList.add('hidden');
+      document.getElementById('help-forecast').classList.add('hidden');
       document.getElementById('help-merge').classList.add('hidden');
 
       // Show appropriate section based on selected operation
@@ -512,6 +567,7 @@
         screen: 'How to use Screen',
         dedupe: 'How to use Dedupe',
         agent: 'How to use Agent',
+        forecast: 'How to use Forecast',
         merge: 'How to use Merge'
       };
 
@@ -679,6 +735,74 @@
       document.getElementById('status-success').classList.add('hidden');
       document.getElementById('status-error').classList.add('hidden');
       document.getElementById('status-loading').classList.add('hidden');
+      document.getElementById('status-session-link').innerHTML = '';
+    }
+
+    // ------------------------------------------------------------------
+    // Client-side polling: submit server-side, then poll from JS
+    // ------------------------------------------------------------------
+
+    var POLL_INITIAL_MS = 2000;
+    var POLL_MAX_MS = 10000;
+
+    /**
+     * Poll a task until completed or failed. No timeout — runs until done.
+     * @param {string} taskId - Task ID to poll.
+     * @param {string} sessionId - Session ID (for links).
+     * @param {string} resultSheetName - Sheet name for results.
+     * @param {string} [operationType] - e.g. 'screen' for special extraction.
+     */
+    function pollTask(taskId, sessionId, resultSheetName, operationType) {
+      var interval = POLL_INITIAL_MS;
+      var linkEl = document.getElementById('status-session-link');
+      if (sessionId) {
+        var url = 'https://everyrow.io/sessions/' + sessionId;
+        linkEl.innerHTML = '<a href="' + url + '" target="_blank">View on Everyrow</a>';
+      }
+
+      function poll() {
+        google.script.run
+          .withSuccessHandler(function(status) {
+            if (status.status === 'completed') {
+              showLoading('Writing results...');
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  setAllButtonsEnabled(true);
+                  var sessionLink = getSessionLink(sessionId);
+                  showSuccess('<strong>Done!</strong> ' + result.rowCount + ' rows written to a new sheet tab.' + sessionLink);
+                  loadInitialState();
+                })
+                .withFailureHandler(function(error) {
+                  setAllButtonsEnabled(true);
+                  showError(error, sessionId);
+                })
+                .retrieveTaskResults(taskId, resultSheetName, operationType || null);
+            } else if (status.status === 'failed') {
+              setAllButtonsEnabled(true);
+              showError({ message: 'Task failed: ' + (status.error || 'Unknown error') }, sessionId);
+            } else {
+              // Still running — update progress and schedule next poll
+              if (status.progress && status.progress.total > 0) {
+                var p = status.progress;
+                showLoading(p.completed + ' of ' + p.total + ' rows done');
+              }
+              interval = Math.min(interval * 1.5, POLL_MAX_MS);
+              setTimeout(poll, interval);
+            }
+          })
+          .withFailureHandler(function(error) {
+            setAllButtonsEnabled(true);
+            showError(error, sessionId);
+          })
+          .getTaskStatus(taskId);
+      }
+
+      setTimeout(poll, interval);
+    }
+
+    function setAllButtonsEnabled(enabled) {
+      var btns = document.querySelectorAll('#operation-config button.primary');
+      btns.forEach(function(btn) { btn.disabled = !enabled; });
     }
 
     function runRankOperation() {
@@ -698,11 +822,18 @@
       var ascending = document.getElementById('rank-ascending').checked;
 
       clearStatus();
-      showLoading('Processing...');
+      showLoading('Submitting rank...');
+      setAllButtonsEnabled(false);
 
       google.script.run
-        .withSuccessHandler(handleOperationResult)
-        .withFailureHandler(showError)
+        .withSuccessHandler(function(result) {
+          showLoading('Processing...');
+          pollTask(result.taskId, result.sessionId, 'Rank Results');
+        })
+        .withFailureHandler(function(error) {
+          setAllButtonsEnabled(true);
+          showError(error);
+        })
         .runRank(task, fieldName, ascending, sheetName);
     }
 
@@ -720,11 +851,18 @@
       }
 
       clearStatus();
-      showLoading('Processing...');
+      showLoading('Submitting screen...');
+      setAllButtonsEnabled(false);
 
       google.script.run
-        .withSuccessHandler(handleOperationResult)
-        .withFailureHandler(showError)
+        .withSuccessHandler(function(result) {
+          showLoading('Processing...');
+          pollTask(result.taskId, result.sessionId, 'Screen Results', 'screen');
+        })
+        .withFailureHandler(function(error) {
+          setAllButtonsEnabled(true);
+          showError(error);
+        })
         .runScreen(task, sheetName);
     }
 
@@ -742,19 +880,19 @@
       }
 
       clearStatus();
-      showLoading('Processing...');
+      showLoading('Submitting dedupe...');
+      setAllButtonsEnabled(false);
 
       google.script.run
-        .withSuccessHandler(handleOperationResult)
-        .withFailureHandler(showError)
+        .withSuccessHandler(function(result) {
+          showLoading('Processing...');
+          pollTask(result.taskId, result.sessionId, 'Dedupe Results');
+        })
+        .withFailureHandler(function(error) {
+          setAllButtonsEnabled(true);
+          showError(error);
+        })
         .runDedupe(relation, sheetName);
-    }
-
-    function setAgentButtonEnabled(enabled) {
-      var btn = document.getElementById('agent-run-btn');
-      if (btn) {
-        btn.disabled = !enabled;
-      }
     }
 
     function runAgentOperation() {
@@ -774,16 +912,16 @@
       var effortLevel = document.getElementById('agent-effort').value;
 
       clearStatus();
-      showLoading('Running agent on each row...');
-      setAgentButtonEnabled(false);
+      showLoading('Submitting agent...');
+      setAllButtonsEnabled(false);
 
       google.script.run
         .withSuccessHandler(function(result) {
-          setAgentButtonEnabled(true);
-          handleOperationResult(result);
+          showLoading('Running agent on each row...');
+          pollTask(result.taskId, result.sessionId, 'Agent Results');
         })
         .withFailureHandler(function(error) {
-          setAgentButtonEnabled(true);
+          setAllButtonsEnabled(true);
           showError(error);
         })
         .runAgentMap(task, sheetName, responseSchema, effortLevel);
@@ -812,31 +950,54 @@
       var mergeRightCol = document.getElementById('merge-right-col').value.trim() || null;
 
       clearStatus();
-      showLoading('Merging tables...');
+      showLoading('Submitting merge...');
+      setAllButtonsEnabled(false);
 
       google.script.run
-        .withSuccessHandler(handleOperationResult)
-        .withFailureHandler(showError)
+        .withSuccessHandler(function(result) {
+          showLoading('Merging tables...');
+          pollTask(result.taskId, result.sessionId, 'Merge Results');
+        })
+        .withFailureHandler(function(error) {
+          setAllButtonsEnabled(true);
+          showError(error);
+        })
         .runMerge(leftSheetName, rightSheetName, task, mergeLeftCol, mergeRightCol);
+    }
+
+    function runForecastOperation() {
+      var sheetName = document.getElementById('forecast-sheet').value;
+      if (!sheetName) {
+        showError({ message: 'Please select an input sheet' });
+        return;
+      }
+
+      var task = document.getElementById('forecast-task').value.trim();
+      if (!task) {
+        showError({ message: 'Please describe the forecast context' });
+        return;
+      }
+
+      clearStatus();
+      showLoading('Submitting forecast...');
+      setAllButtonsEnabled(false);
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          showLoading('Running forecast...');
+          pollTask(result.taskId, result.sessionId, 'Forecast Results');
+        })
+        .withFailureHandler(function(error) {
+          setAllButtonsEnabled(true);
+          showError(error);
+        })
+        .runForecast(task, sheetName);
     }
 
     function getSessionLink(sessionId) {
       if (!sessionId) return '';
       var url = 'https://everyrow.io/sessions/' + sessionId;
       return '<br><a href="' + url + '" target="_blank">View session on Everyrow</a>';
-    }
-
-    function handleOperationResult(result) {
-      var sessionLink = getSessionLink(result.sessionId);
-      if (result.status === 'completed') {
-        showSuccess('<strong>Done!</strong> ' + result.rowCount + ' rows written to a new sheet tab.' + sessionLink);
-        loadInitialState();
-      } else if (result.status === 'timeout') {
-        showError({ message: result.message }, result.sessionId);
-        loadInitialState();
-      } else {
-        showError({ message: 'Unexpected result: ' + JSON.stringify(result) }, result.sessionId);
-      }
     }
   </script>
 </body>

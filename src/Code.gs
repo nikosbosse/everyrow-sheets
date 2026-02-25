@@ -58,10 +58,21 @@ function getSidebarData() {
   // Load settings once instead of multiple calls
   var settings = getAllSettings();
   var apiKey = settings.apiKey || null;
+  var isConfigured = !!(apiKey && apiKey.startsWith('sk-cho-'));
+
+  var balance = null;
+  if (isConfigured) {
+    try {
+      balance = getBillingBalance();
+    } catch (e) {
+      // Don't block sidebar load if billing fails
+    }
+  }
 
   return {
-    isConfigured: !!(apiKey && apiKey.startsWith('sk-cho-')),
+    isConfigured: isConfigured,
     apiKeyMasked: apiKey ? apiKey.substring(0, 10) + '...' : null,
+    balance: balance,
     lastTaskId: settings.lastTaskId || null,
     selectionInfo: getSelectionInfo()
   };

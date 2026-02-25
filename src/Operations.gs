@@ -1,63 +1,9 @@
 /**
  * Core everyrow operations: rank, dedupe, screen.
  * Uses the public API v0 endpoints.
+ * Each run* function submits the task and returns immediately.
+ * Polling is handled client-side in the sidebar JavaScript.
  */
-
-// Maximum time to poll before giving up (5 minutes)
-var MAX_POLL_TIME_MS = 5 * 60 * 1000;
-
-// Initial poll interval (2 seconds)
-var INITIAL_POLL_INTERVAL_MS = 2000;
-
-// Maximum poll interval (10 seconds)
-var MAX_POLL_INTERVAL_MS = 10000;
-
-/**
- * Poll a task until completion or timeout.
- * @param {string} taskId - Task ID to poll.
- * @param {string} sessionId - Session ID (for result tracking).
- * @return {Object} Result with status, taskId, sessionId.
- */
-function pollTaskUntilComplete(taskId, sessionId) {
-  // Save task ID for resumption
-  saveLastTaskId(taskId);
-
-  // Poll for completion
-  var startTime = Date.now();
-  var pollInterval = INITIAL_POLL_INTERVAL_MS;
-
-  while (Date.now() - startTime < MAX_POLL_TIME_MS) {
-    Utilities.sleep(pollInterval);
-
-    var status = getTaskStatus(taskId);
-
-    if (status.status === 'completed') {
-      clearLastTaskId();
-      return {
-        status: 'completed',
-        taskId: taskId,
-        sessionId: sessionId,
-        artifactId: status.artifact_id
-      };
-    }
-
-    if (status.status === 'failed') {
-      clearLastTaskId();
-      throw new Error('Task failed: ' + (status.error || 'Unknown error'));
-    }
-
-    // Exponential backoff
-    pollInterval = Math.min(pollInterval * 1.5, MAX_POLL_INTERVAL_MS);
-  }
-
-  // Timeout - task ID is saved for resumption
-  return {
-    status: 'timeout',
-    taskId: taskId,
-    sessionId: sessionId,
-    message: 'Task is still running. Use "Check Previous Task" to check status later.'
-  };
-}
 
 /**
  * Check the status of a previous task (for resumption after timeout).
@@ -95,21 +41,19 @@ function checkPreviousTask(taskId) {
 }
 
 /**
- * Run a Deep Rank operation.
+ * Submit a Deep Rank operation. Returns immediately with task info.
  * @param {string} task - The ranking task description.
  * @param {string} fieldName - Field name for the score (default: 'score').
  * @param {boolean} ascending - Sort ascending (default: false).
  * @param {string} sheetName - Name of the sheet to read data from.
- * @return {Object} Operation result.
+ * @return {Object} {taskId, sessionId}
  */
 function runRank(task, fieldName, ascending, sheetName) {
   fieldName = fieldName || 'score';
   ascending = ascending === true;
 
-  // Get data from sheet
   var records = sheetToRecords(sheetName);
 
-  // Build JSON Schema for the response
   var responseSchema = {
     type: 'object',
     properties: {},
@@ -117,36 +61,19 @@ function runRank(task, fieldName, ascending, sheetName) {
   };
   responseSchema.properties[fieldName] = { type: 'number', description: 'Score for ranking' };
 
-  // Submit rank operation directly with inline data
   var response = submitRank(records, task, fieldName, ascending, responseSchema);
-  var taskId = response.task_id;
-  var sessionId = response.session_id;
-
-  // Poll for completion
-  var result = pollTaskUntilComplete(taskId, sessionId);
-
-  if (result.status === 'completed') {
-    // Fetch results and write to sheet
-    var taskResult = getTaskResult(taskId);
-    var resultRecords = extractResultData(taskResult);
-    writeResultsToSheet(resultRecords, 'Rank Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
-  }
-
-  return result;
+  return { taskId: response.task_id, sessionId: response.session_id };
 }
 
 /**
- * Run a Deep Screen operation.
+ * Submit a Deep Screen operation. Returns immediately with task info.
  * @param {string} task - The screening task/criteria description.
  * @param {string} sheetName - Name of the sheet to read data from.
- * @return {Object} Operation result.
+ * @return {Object} {taskId, sessionId}
  */
 function runScreen(task, sheetName) {
-  // Get data from sheet
   var records = sheetToRecords(sheetName);
 
-  // Screen requires a response_schema with at least one boolean field
   var responseSchema = {
     type: 'object',
     properties: {
@@ -155,54 +82,21 @@ function runScreen(task, sheetName) {
     required: ['passes_screen']
   };
 
-  // Submit screen operation directly with inline data
   var response = submitScreen(records, task, responseSchema);
-  var taskId = response.task_id;
-  var sessionId = response.session_id;
-
-  // Poll for completion
-  var result = pollTaskUntilComplete(taskId, sessionId);
-
-  if (result.status === 'completed') {
-    // Fetch results and write to sheet
-    var taskResult = getTaskResult(taskId);
-    var resultRecords = extractScreenResults(taskResult);
-    writeResultsToSheet(resultRecords, 'Screen Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
-  }
-
-  return result;
+  return { taskId: response.task_id, sessionId: response.session_id };
 }
 
 /**
- * Run a Dedupe operation.
+ * Submit a Dedupe operation. Returns immediately with task info.
  * @param {string} equivalenceRelation - Description of what makes two records duplicates.
  * @param {string} sheetName - Name of the sheet to read data from.
- * @return {Object} Operation result.
+ * @return {Object} {taskId, sessionId}
  */
 function runDedupe(equivalenceRelation, sheetName) {
-  // Get data from sheet
   var records = sheetToRecords(sheetName);
 
-  // Submit dedupe operation directly with inline data
   var response = submitDedupe(records, equivalenceRelation);
-  var taskId = response.task_id;
-  var sessionId = response.session_id;
-
-  // Poll for completion
-  var result = pollTaskUntilComplete(taskId, sessionId);
-
-  if (result.status === 'completed') {
-    // Fetch results and write to sheet
-    // Results include: selected (bool), equivalence_class_id, equivalence_class_name
-    // Users can filter by selected=true to get deduplicated rows
-    var taskResult = getTaskResult(taskId);
-    var resultRecords = extractResultData(taskResult);
-    writeResultsToSheet(resultRecords, 'Dedupe Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
-  }
-
-  return result;
+  return { taskId: response.task_id, sessionId: response.session_id };
 }
 
 /**
@@ -279,78 +173,59 @@ function extractDedupeResults(taskResult) {
 }
 
 /**
- * Run an Agent Map operation.
+ * Submit an Agent Map operation. Returns immediately with task info.
  * @param {string} task - The task description for the agent.
  * @param {string} sheetName - Name of the sheet to read data from.
  * @param {Object} [responseSchema] - Optional JSON Schema for output columns.
  * @param {string} [effortLevel] - Effort level: 'low', 'medium', or 'high'. Default: 'medium'.
- * @return {Object} Operation result.
+ * @return {Object} {taskId, sessionId}
  */
 function runAgentMap(task, sheetName, responseSchema, effortLevel) {
-  // Get data from sheet
   var records = sheetToRecords(sheetName);
-
   effortLevel = effortLevel || DEFAULT_EFFORT_LEVEL;
 
-  // Submit agent-map operation directly with inline data
   var response = submitAgentMap(records, task, responseSchema || null, effortLevel);
-  var taskId = response.task_id;
-  var sessionId = response.session_id;
-
-  // Poll for completion
-  var result = pollTaskUntilComplete(taskId, sessionId);
-
-  if (result.status === 'completed') {
-    // Fetch results and write to sheet
-    var taskResult = getTaskResult(taskId);
-    var resultRecords = extractResultData(taskResult);
-    writeResultsToSheet(resultRecords, 'Agent Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
-  }
-
-  return result;
+  return { taskId: response.task_id, sessionId: response.session_id };
 }
 
 /**
- * Run a Merge operation combining two tables.
+ * Submit a Forecast operation. Returns immediately with task info.
+ * @param {string} task - Context or instructions for the forecast.
+ * @param {string} sheetName - Name of the sheet to read data from.
+ * @return {Object} {taskId, sessionId}
+ */
+function runForecast(task, sheetName) {
+  var records = sheetToRecords(sheetName);
+
+  var response = submitForecast(records, task);
+  return { taskId: response.task_id, sessionId: response.session_id };
+}
+
+/**
+ * Submit a Merge operation combining two tables. Returns immediately with task info.
  * @param {string} leftSheetName - Name of the sheet for the left/primary table.
  * @param {string} rightSheetName - Name of the sheet for the right/secondary table.
  * @param {string} task - Description of how to merge the tables.
  * @param {string} [mergeOnLeft] - Optional column name to match on from left table.
  * @param {string} [mergeOnRight] - Optional column name to match on from right table.
- * @return {Object} Operation result.
+ * @return {Object} {taskId, sessionId}
  */
 function runMerge(leftSheetName, rightSheetName, task, mergeOnLeft, mergeOnRight) {
-  // Get data from sheets
   var leftRecords = sheetToRecords(leftSheetName);
   var rightRecords = sheetToRecords(rightSheetName);
 
-  // Submit merge operation directly with inline data
   var response = submitMerge(leftRecords, rightRecords, task, mergeOnLeft, mergeOnRight);
-  var taskId = response.task_id;
-  var sessionId = response.session_id;
-
-  // Poll for completion
-  var result = pollTaskUntilComplete(taskId, sessionId);
-
-  if (result.status === 'completed') {
-    // Fetch results and write to sheet
-    var taskResult = getTaskResult(taskId);
-    var resultRecords = extractResultData(taskResult);
-    writeResultsToSheet(resultRecords, 'Merge Results');
-    return { status: 'completed', rowCount: resultRecords.length, sessionId: sessionId };
-  }
-
-  return result;
+  return { taskId: response.task_id, sessionId: response.session_id };
 }
 
 /**
  * Retrieve and write results for a completed task.
  * @param {string} taskId - Task ID.
  * @param {string} sheetName - Name for the results sheet.
+ * @param {string} [operationType] - Operation type (e.g. 'screen') for special extraction logic.
  * @return {Object} Result with row count.
  */
-function retrieveTaskResults(taskId, sheetName) {
+function retrieveTaskResults(taskId, sheetName, operationType) {
   var status = getTaskStatus(taskId);
 
   if (status.status !== 'completed') {
@@ -358,7 +233,9 @@ function retrieveTaskResults(taskId, sheetName) {
   }
 
   var taskResult = getTaskResult(taskId);
-  var records = extractResultData(taskResult);
+  var records = operationType === 'screen'
+    ? extractScreenResults(taskResult)
+    : extractResultData(taskResult);
 
   if (records.length === 0) {
     throw new Error('Task completed but no results found.');

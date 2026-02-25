@@ -337,10 +337,17 @@ function writeResultsToSheet(records, sheetName) {
   // Freeze header row
   sheet.setFrozenRows(1);
 
-  // Auto-resize columns
+  // Auto-resize columns, but cap at a max width to prevent very wide cells
+  var maxColumnWidth = 300;
   for (let i = 1; i <= headers.length; i++) {
     sheet.autoResizeColumn(i);
+    if (sheet.getColumnWidth(i) > maxColumnWidth) {
+      sheet.setColumnWidth(i, maxColumnWidth);
+    }
   }
+
+  // Clip overflow so rows stay compact (content visible on click)
+  range.setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
 
   // Activate the new sheet
   spreadsheet.setActiveSheet(sheet);
