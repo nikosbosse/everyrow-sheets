@@ -290,8 +290,7 @@ function runAgentMap(task, sheetName, responseSchema, effortLevel) {
   // Get data from sheet
   var records = sheetToRecords(sheetName);
 
-  // Default to 'medium' effort level (includes research/provenance notes)
-  effortLevel = effortLevel || 'medium';
+  effortLevel = effortLevel || DEFAULT_EFFORT_LEVEL;
 
   // Submit agent-map operation directly with inline data
   var response = submitAgentMap(records, task, responseSchema || null, effortLevel);

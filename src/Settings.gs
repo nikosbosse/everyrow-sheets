@@ -4,6 +4,7 @@
  */
 
 const SETTINGS_KEY = 'everyrow_settings';
+const DEFAULT_EFFORT_LEVEL = 'medium';
 
 /**
  * Get the stored API key.

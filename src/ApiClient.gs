@@ -200,7 +200,7 @@ function submitAgentMap(data, task, responseSchema, effortLevel, sessionId) {
   var body = {
     input: data,
     task: task,
-    effort_level: effortLevel || 'low',
+    effort_level: effortLevel,
     join_with_input: true
   };
   if (responseSchema) {
